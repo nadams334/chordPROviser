@@ -1,3 +1,6 @@
+// chordPROviser
+// Author: Nathan Adams
+// 2016
 
 #include <string>
 #include <vector>
@@ -49,7 +52,7 @@ bool endsWith(const string& a, const string& b) {
 
 vector<string> getLines(string filename)
 {
-	vector<string> lines = {};
+	vector<string> lines;
 	ifstream inputStream(filename);
 	
 	for (string line; getline(inputStream, line);) {
@@ -82,7 +85,7 @@ void loadInput(string filename)
 			loadMMAfile(lines);
 			break;
 		default:
-			log("Unsupported input file type for filename: " + filename + " (InputFileType::" + to_string(inputFileType) + ")");
+			log("Unsupported input file type for filename: " + filename + " (InputFileType::" + inputFileType + ")");
 			errorStatus = 2;
 			break;
 	}
@@ -96,7 +99,7 @@ void loadInput(string filename)
 
 	cout << endl << "Output file: " << outputFilename << endl;
 
-	cout << endl << "Options(" + to_string(options->getArgCount()) + "): " << endl;
+	cout << endl << "Options(" + options->getArgCount() + "): " << endl;
 
 	for (int i = 0; i < options->getArgCount(); i++)
 	{
@@ -175,7 +178,7 @@ void processOption(int argNumber)
 			displayLogs = false;
 	else
 	{
-		log("Unrecoginized command line argument #" + to_string(argNumber) + ": " + arg);
+		log("Unrecoginized command line argument #" + argNumber + ": " + arg);
 		errorStatus = 1;
 	}
 }

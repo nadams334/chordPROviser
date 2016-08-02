@@ -3,10 +3,12 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 
 // MidiFile
 #include "MidiFile.h"
+#include "Options.h"
 
 using namespace std;
 
@@ -21,8 +23,8 @@ vector<string> chordProgression;
 MidiFile* midiFile;
 Options* options;
 
-enum IOtype = { Input, Output };
-enum InputFileType = { MMA, TXT };
+enum IOtype { Input, Output };
+enum InputFileType { MMA, TXT, Other };
 string inputFilename;
 string outputFilename;
 InputFileType inputFileType;
@@ -36,80 +38,99 @@ void log(string message)
 {
 	if (displayLogs)
 	{
-		cerr << message << endl;
+		cout << message << endl;
 	}
 }
 
-bool EndsWith(const string& a, const string& b) {
+bool endsWith(const string& a, const string& b) {
     if (b.size() > a.size()) return false;
     return std::equal(a.begin() + a.size() - b.size(), a.end(), b.begin());
 }
 
 vector<string> getLines(string filename)
 {
-	vector<string> lines = new vector<string>();
-	// ifstream inputStream = filename
+	vector<string> lines = {};
+	ifstream inputStream(filename);
 	
 	for (string line; getline(inputStream, line);) {
-        lines.insert(line);
+        lines.push_back(line);
     }
     
     return lines;
 }
 
-void loadCPSfile(string lines)
+void loadCPSfile(vector<string> lines)
 {
 	
 }
 
-void loadMMAfile(string lines)
+void loadMMAfile(vector<string> lines)
 {
 	
 }
 
-void loadInput(string filename, InputFileType fileType)
+void loadInput(string filename)
 {
 	vector<string> lines = getLines(filename);
 	
-	switch (fileType)
+	switch (inputFileType)
 	{
-		case InputFileType.TXT:
+		case TXT:
 			loadCPSfile(lines);
 			break;
-		case InputFileType.MMA:
+		case MMA:
 			loadMMAfile(lines);
 			break;
 		default:
-			log("Unsupported input file type for filename: %s (InputFileType::%s)", filename, fileType);
+			log("Unsupported input file type for filename: " + filename + " (InputFileType::" + to_string(inputFileType) + ")");
+			errorStatus = 2;
 			break;
+	}
+
+	cout << "Input file: " << inputFilename << endl << endl;
+
+	for (int i = 0; i < lines.size(); i++)
+	{
+		cout << lines[i] << endl;
+	}
+
+	cout << endl << "Output file: " << outputFilename << endl;
+
+	cout << endl << "Options(" + to_string(options->getArgCount()) + "): " << endl;
+
+	for (int i = 0; i < options->getArgCount(); i++)
+	{
+		cout << options->getArg(i) << endl;
 	}
 
 }
 
 void setInputFileType(string filename)
 {
-	if (filename.endsWith(".txt")) inputFileType = InputFileType.TXT;
-	else if (filename.endsWith(".mma")) inputFileType = InputFileType.MMA;
+	if (endsWith(filename, ".txt")) inputFileType = TXT;
+	else if (endsWith(filename, ".mma")) inputFileType = MMA;
 	else
 	{
-		inputFileType = InputFileType.Other;
-		log("Unrecognized input file type for input file: %s", filename);
+		inputFileType = Other;
+		log("Unrecognized input file type for input file: " + filename);
+		errorStatus = 1;
 	}
 }
 
 bool setIOFile(int argNumber, IOtype ioType)
 {
-	if (argNumber >= options.getArgCount())
+	string arg = options->getArg(argNumber);
+	string type;
+	string optionName;
+
+	if (argNumber >= options->getArgCount())
 	{
-		log("Please supply an %s filename after the '%s' option.", type, optionName);
+		log("Please supply an " + type + " filename after the " + optionName + " option.");
+		errorStatus = 1;
 		return false;
 	}
 	
-	string arg = options.getArg(argNumber);
-	string type;
-	string optionName;
-	
-	switch (type)
+	switch (ioType)
 	{
 		case Input:
 			setInputFileType(arg);
@@ -123,43 +144,43 @@ bool setIOFile(int argNumber, IOtype ioType)
 			outputFilename = arg;
 			break;
 		default:
-			log("Unrecoginized IO type: %s", ioType);
+			log("Unrecoginized IO type: " + ioType);
+			errorStatus = -1;
 			return false;
 			break;
 	}
+
+	return true;
 }
 
 bool setInputFile(int argNumber)
 {
-	return setIOFile(argNumber, IOtype.Input);
+	return setIOFile(argNumber, Input);
 }
 
 bool setOutputFile(int argNumber)
 {
-	return setIOFile(argNumber, IOtype.Input);
+	return setIOFile(argNumber, Input);
 }
 
 void processOption(int argNumber)
 {
-	string arg = options.getArg(argNumber);
-	switch (arg)
-	{
-		case inputFileOption:
-			setInputFile(argNumber+1);
-			break;
-		case outputFileOption:
+	string arg = options->getArg(argNumber);
+
+	if (arg.compare(inputFileOption) == 0)
+		setInputFile(argNumber+1);
+	else if (arg.compare(outputFileOption) == 0)
 			setOutputFile(argNumber+1);
-			break;
-		case logFileOption:
+	else if (arg.compare(logFileOption) == 0)
 			displayLogs = false;
-			break;
-		default:
-			log("Unrecoginized command line argument #%d: %s", argNumber, option);
-			break;
+	else
+	{
+		log("Unrecoginized command line argument #" + to_string(argNumber) + ": " + arg);
+		errorStatus = 1;
 	}
 }
 
-int initialize(int argc, char** argv)
+void initialize(int argc, char** argv)
 {
 	// Initialize variables
 	errorStatus = 0;
@@ -169,7 +190,7 @@ int initialize(int argc, char** argv)
 	options = new Options();
 	options->process(argc, argv);
 	
-	for (int i = 0; i < options.getArgCount(); i++)
+	for (int i = 0; i < options->getArgCount(); i++)
 	{
 		processOption(i);
 	}
@@ -181,8 +202,8 @@ int initialize(int argc, char** argv)
 int main(int argc, char** argv) 
 {
 	initialize(argc, argv);
-	
-	
-	
+
+
+
 	return errorStatus;
 }

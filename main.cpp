@@ -10,16 +10,21 @@
 #include <sstream>
 #include <iomanip>
 
-// MidiFile
 #include "MidiFile.h"
+
+
 
 using namespace std;
 
+
+
 int errorStatus;
 bool displayLogs;
+bool displayScales;
 
 // Song info
 int beatsPerMinute;
+int beatsPerBar;
 vector<string> chordProgression;
 
 // File I/O
@@ -34,9 +39,10 @@ InputFileType inputFileType;
 // Command line args
 vector<string> commandLineArgs;
 
-string inputFileOption = "-i";
-string outputFileOption = "-o";
-string logFileOption = "-l";
+const string inputFileOption = "-i";
+const string outputFileOption = "-o";
+const string logFileOption = "-l";
+const string scalesFileOption = "-s";
 
 void log(string message)
 {
@@ -50,6 +56,14 @@ bool endsWith(const string& a, const string& b)
 {
     if (b.size() > a.size()) return false;
     return std::equal(a.begin() + a.size() - b.size(), a.end(), b.begin());
+}
+
+void toggle(bool& booleanValue)
+{
+	if (booleanValue)
+		booleanValue = false;
+	else
+		booleanValue = true;
 }
 
 void parseArgs(int argc, char** argv)
@@ -144,12 +158,16 @@ void loadInput(string filename)
 
 	cout << endl << "Output file: " << outputFilename << endl;
 
-	cout << endl << "Options(" << getArgCount() << "): " << endl;
+	cout << endl << "Args(" << getArgCount() << "): " << endl;
 
 	for (int i = 0; i < getArgCount(); i++)
 	{
 		cout << getArg(i) << endl;
 	}
+
+	cout << endl << "Options: " << endl;
+	cout << "Logs: " << displayLogs << endl;
+	cout << "Scales: " << displayScales << endl;
 
 }
 
@@ -230,7 +248,11 @@ bool processOption(int argNumber)
 	}
 	else if (arg.compare(logFileOption) == 0)
 	{
-		displayLogs = false;
+		toggle(displayLogs);
+	}	
+	else if (arg.compare(scalesFileOption) == 0)
+	{
+		toggle(displayScales);
 	}	
 	else
 	{
@@ -247,6 +269,7 @@ void initialize(int argc, char** argv)
 	// Initialize variables
 	errorStatus = 0;
 	displayLogs = true;
+	displayScales = false;
 	
 	// Process command line options
 	parseArgs(argc, argv);

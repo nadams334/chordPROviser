@@ -19,30 +19,70 @@ using namespace std;
 
 
 int errorStatus;
-bool displayLogs;
-bool displayScales;
 
 // Song info
 int beatsPerMinute;
 int beatsPerBar;
 vector<string> chordProgression;
+vector<string> scaleProgression;
+vector<string> noteProgression;
 
 // File I/O
 MidiFile* midiFile;
 
 enum IOtype { Input, Output };
 enum InputFileType { MMA, TXT, Other };
+
 string inputFilename;
 string outputFilename;
+
 InputFileType inputFileType;
+
+// Config data
+const string CHORD_LIST_FILENAME = "config/chords.cfg";
+const string COLOR_FILENAME = "config/colors.cfg";
+
+map<string, string> chordScaleNotes;
+map<string, string> chordDefaultScales;
+
+int[] color1;
+int[] color2;
+int[] mixed_color;
 
 // Command line args
 vector<string> commandLineArgs;
+
+bool displayLogs;
+bool displayScales;
+bool indicateRoot;
+bool brightMode;
+bool debugMode;
 
 const string inputFileOption = "-i";
 const string outputFileOption = "-o";
 const string logFileOption = "-l";
 const string scalesFileOption = "-s";
+const string indicateRootOption = "-r";
+const string brightnessOption = "-b";
+const string debugOption = "-d";
+
+void debug()
+{
+	if (!debugMode)
+		return;
+
+	cout << endl << "Args(" << getArgCount() << "): " << endl;
+
+	for (int i = 0; i < getArgCount(); i++)
+	{
+		cout << getArg(i) << endl;
+	}
+
+	cout << endl << "Options: " << endl;
+	cout << "Logs enabled (default 1): " << displayLogs << endl;
+	cout << "Bright mode (default 1):" << brightMode << endl;
+	cout << "Scale mode (default 0): " << displayScales << endl;
+}
 
 void log(string message)
 {
@@ -56,6 +96,16 @@ bool endsWith(const string& a, const string& b)
 {
     if (b.size() > a.size()) return false;
     return std::equal(a.begin() + a.size() - b.size(), a.end(), b.begin());
+}
+
+string getChordType(string chordName)
+{
+	// Grab everything after the first character or 2
+}
+
+string getRoot(string chordName)
+{
+	// Grab the first character or 2
 }
 
 void toggle(bool& booleanValue)
@@ -121,7 +171,11 @@ vector<string> getLines(string filename)
 
 void loadCPSfile(vector<string> lines)
 {
-	
+	// Stuff all chord names in the chord progression vector (append root C if no root specified)
+	// For each chord:
+	//	Get the associated scale (either specified or looked up in chordDefaultScales if none specified. append root of chord at beginning if not specified)
+	//	If displayScales: add scale to chord progression
+	//	else add "empty"
 }
 
 void loadMMAfile(vector<string> lines)
@@ -148,26 +202,6 @@ void loadInput(string filename)
 			errorStatus = 2;
 			break;
 	}
-
-	cout << "Input file: " << inputFilename << endl << endl;
-
-	for (int i = 0; i < lines.size(); i++)
-	{
-		cout << lines[i] << endl;
-	}
-
-	cout << endl << "Output file: " << outputFilename << endl;
-
-	cout << endl << "Args(" << getArgCount() << "): " << endl;
-
-	for (int i = 0; i < getArgCount(); i++)
-	{
-		cout << getArg(i) << endl;
-	}
-
-	cout << endl << "Options: " << endl;
-	cout << "Logs: " << displayLogs << endl;
-	cout << "Scales: " << displayScales << endl;
 
 }
 
@@ -254,6 +288,18 @@ bool processOption(int argNumber)
 	{
 		toggle(displayScales);
 	}	
+	else if (arg.compare(debugOption) == 0)
+	{
+		toggle(debugMode);
+	}
+	else if (arg.compare(brightnessOption) == 0)
+	{
+		toggle(brightMode);
+	}
+	else if (arg.compare(indicateRootOption) == 0)
+	{
+		toggle(indicateRoot);
+	}
 	else
 	{
 		stringstream ss;
@@ -262,6 +308,131 @@ bool processOption(int argNumber)
 	}
 	
 	return false;
+	
+}
+
+void loadChordMaps(string filename)
+{
+	
+}
+
+void loadColorConfig(string filename)
+{
+	color1 = { 255, 0, 0 };
+	color2 = { 0, 255, 0 };
+	mixed_color = { 255, 0, 255 };
+}
+
+void loadConfig() 
+{
+	loadChordMaps(CHORD_LIST_FILENAME);
+	loadColorConfig(COLOR_FILENAME);
+}
+
+void normalizeBrightness()
+{
+	if (!brightMode)
+		return;
+		
+	// if all 1's and 0's, change 1's to 2's
+}
+
+string combineChords(string chord1, string chord2)
+{
+	string combinedChord = "";
+	
+	for (int i = 0; i < chord1.length(); i++)
+	{
+		combinedChord += chord1[i] + chord2[i] - '0';
+	}
+	
+	normalizeBrightness();
+	
+	return combinedChord;
+}
+
+string shiftStringRight(string str, int offset)
+{
+	
+}
+
+string transposeChord(string chordType, string root)
+{
+	if (root.compare("C") == 0)
+	{
+		return shiftStringRight(chord, 0);
+	}	
+	else if (root.compare("C#") == 0 || root.compare("Db") == 0)
+	{
+		return shiftStringRight(chord, 1);
+	}	
+	else if (root.compare("D") == 0)
+	{
+		return shiftStringRight(chord, 2);
+	}	
+	else if (root.compare("D#") == 0 || root.compare("Eb") == 0)
+	{
+		return shiftStringRight(chord, 3);
+	}
+	else if (root.compare("E") == 0)
+	{
+		return shiftStringRight(chord, 4);
+	}
+	else if (root.compare("F") == 0)
+	{
+		return shiftStringRight(chord, 5);
+	}
+	else if (root.compare("F#") == 0 || root.compare("Gb") == 0)
+	{
+		return shiftStringRight(chord, 6);
+	}
+	else if (root.compare("G") == 0)
+	{
+		return shiftStringRight(chord, 7);
+	}
+	else if (root.compare("G#") == 0 || root.compare("Ab") == 0)
+	{
+		return shiftStringRight(chord, 8);
+	}
+	else if (root.compare("A") == 0)
+	{
+		return shiftStringRight(chord, 9);
+	}
+	else if (root.compare("A#") == 0 || root.compare("Bb") == 0)
+	{
+		return shiftStringRight(chord, 10);
+	}
+	else if (root.compare("B") == 0)
+	{
+		return shiftStringRight(chord, 11);
+	}
+	else
+	{
+		stringstream ss;
+		ss << "Unrecoginized root not: " << root;
+		log(ss.str());
+		errorStatus = 3;
+	}
+}
+
+string generateChord(int index)
+{
+	return transposeChord(getChordType(chordProgression[i]), getRoot(chordProgression[i]);
+}
+
+string generateScale(int index)
+{
+	return transposeChord(getChordType(scaleProgression[i]), getRoot(scaleProgression[i]);
+}
+
+vector<string> generateNoteProgression() 
+{
+	for (int i = 0; i < chordProgression.size(); i++)
+	{
+		string notesInChord = generateChord(i);
+		string notesInScale = generateScale(i);
+		noteProgression.push_back(combineChordAndScale(notesInChord, notesInScale);
+	}
 }
 
 void initialize(int argc, char** argv)
@@ -270,6 +441,9 @@ void initialize(int argc, char** argv)
 	errorStatus = 0;
 	displayLogs = true;
 	displayScales = false;
+	indicateRoot = false;
+	brightMode = true;
+	debugMode = false;
 	
 	// Process command line options
 	parseArgs(argc, argv);
@@ -279,6 +453,8 @@ void initialize(int argc, char** argv)
 		if (processOption(i))
 			i++;
 	}
+
+	loadConfig();
 	
 	loadInput(inputFilename);
 	
@@ -288,7 +464,7 @@ int main(int argc, char** argv)
 {
 	initialize(argc, argv);
 
-
+	generateNoteProgression();
 
 	return errorStatus;
 }

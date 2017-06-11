@@ -1,0 +1,21 @@
+
+Session: all_at_once.cps
+
+Folder: C:\Users\Nathan\Documents\chord_pulse\
+
+Style: Swing - 2 Feel
+
+Tempo: 100 BPM
+
+--------------------------------------------------
+
+Chords:
+
+| CM7_'lydian . . . | CM7_C'lydian . . . | CM7 . . . | CM7 . . . |
+
+| Eb7_'mixolydian . . . | Eb7_Eb'mixolydian . . . | Eb7 . . . | Eb7 . . . |
+
+| E7sus_'dorian . . . | E7sus_E'dorian . . . | E7sus . . . | E7sus . . . |
+
+| G7alt . . . | G7alt . . . | G7alt . . . | G7alt . . . |
+

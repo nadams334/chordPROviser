@@ -15,7 +15,7 @@ Chords:
 
 | Eb7/F_'mixolydian . . . | Eb7_Eb'mixolydian . . . | Eb7/F . . . | Eb7 . . . |
 
-| E7sus_'dorian . . . | E7sus_E'dorian . . . | E7sus . . . | E7sus . . . |
+| E7sus/Bb_'dorian . . . | E7sus_E'dorian . . . | E7sus . . . | E7sus/Bb . . . |
 
 | G7alt . . . | G7alt . . . | G7alt . . . | G7alt . . . |
 

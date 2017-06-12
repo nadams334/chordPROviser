@@ -282,6 +282,11 @@ void loadCPSfile(vector<string> lines)
 					chord = word.substr(0, indexOfUnderscore);
 					scale = word.substr(indexOfUnderscore+1);
 					
+					if (getRoot(chord).size() == 0)
+					{
+						chord = "C" + chord; // default to root of C if none specified
+					}
+					
 					if (getRoot(scale).size() == 0)
 					{
 						//cout << "Appending root note '" << getRoot(chord) << "' from chord '" << chord << "' to scale '" << scale << "'" << endl;
@@ -297,6 +302,10 @@ void loadCPSfile(vector<string> lines)
 				else
 				{
 					chord = word;
+					if (getRoot(chord).size() == 0)
+					{
+						chord = "C" + chord; // default to root of C if none specified
+					}
 				}
 				
 				chordProgression.push_back(chord);
@@ -624,29 +633,37 @@ int getNoteIndex(string note)
 	}
 }
 
+string getChordNoteString(string chordType)
+{
+	int numZeroes = count(chordType.begin(), chordType.end(), '0');
+	int numOnes = count(chordType.begin(), chordType.end(), '1');
+	int numTwos = count(chordType.begin(), chordType.end(), '2');
+	
+	if (chordType.size() == 12 && ((numZeroes + numOnes + numTwos) == 12))
+	{
+		// chord is already in note-string format
+		return chordType;
+	}
+	
+	return chordMap[chordType]; // do lookup translation to get note-string format
+}
+
 string transposeChord(string chordType, string root, string bass)
 {
-	string chordNoteString = chordMap[chordType];
+	string chordNoteString = getChordNoteString(chordType);
 	
 	int rootIndex = getNoteIndex(root);
 	int bassIndex = getNoteIndex(bass);
 	
-	if (rootIndex < 0)
+	if (rootIndex >= 0)
 	{
-		stringstream ss;
-		ss << "Unrecoginized root note: '" << root << "' for chord type '" << chordType << "'";
-		log(ss.str());
-		errorStatus = 3;
-		return "000000000000";
-	}
-	else
-	{
+		// shift chord based on specified root
 		chordNoteString = shiftStringRight(chordNoteString, rootIndex);
 	}
 	
-	// add bass note if not present in chord
 	if (bassIndex >= 0)
 	{
+		// add bass note if not present in chord
 		if (chordNoteString[bassIndex] == '0') chordNoteString[bassIndex] = '1';
 	}
 	

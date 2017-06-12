@@ -3,6 +3,7 @@
 // 2016-2017
 
 #include <string>
+#include <stdio.h>
 #include <vector>
 #include <algorithm>
 #include <iostream>
@@ -27,6 +28,8 @@ vector<string> chordProgression;
 vector<string> scaleProgression;
 vector<string> noteProgression;
 
+const int TPQ = 48;
+
 // File I/O
 MidiFile* midiFile;
 
@@ -48,14 +51,14 @@ vector<string> commandLineArgs;
 
 bool displayLogs;
 bool brightMode;
-bool indicateRoot;
+bool indicateBass;
 bool debugMode;
 
 const string inputFileOption = "-i";
 const string outputFileOption = "-o";
 const string logFileOption = "-l";
 const string brightnessOption = "-b";
-const string indicateRootOption = "-r";
+const string indicateBassOption = "-r";
 const string debugOption = "-d";
 
 
@@ -73,23 +76,55 @@ bool endsWith(const string& a, const string& b)
     return std::equal(a.begin() + a.size() - b.size(), a.end(), b.begin());
 }
 
+int getMicrosecondsPerBeat(int beatsPerMinute)
+{
+	return 60000000/beatsPerMinute; // 60,000,000 microseconds per minute / x beats per minute = 60,000,000/x microseconds per beat
+}
+
 string getRoot(string chordName)
 {
-	if (chordName[0] != 'A' || chordName[0] != 'B' || chordName[0] != 'C' || chordName[0] != 'D' || chordName[0] != 'E' || chordName[0] != 'F' || chordName[0] != 'G')
+	string root;
+	
+	if (chordName[0] != 'A' && chordName[0] != 'B' && chordName[0] != 'C' && chordName[0] != 'D' && chordName[0] != 'E' && chordName[0] != 'F' && chordName[0] != 'G')
 	{
-		cout << "No root specified for chord '" << chordName << "'" << endl;
+		root = "";
 	}
-	if (chordName[1] == '#' || chordName[1] == 'b')
+	else if (chordName[1] == '#' || chordName[1] == 'b')
 	{
-		return chordName.substr(0, 2);
+		root = chordName.substr(0, 2); // grab first two characters to get accidental
 	}
-	return chordName.substr(0, 1);
+	else
+	{
+		root = chordName.substr(0, 1); // just grab first character, no accidental
+	}
+	//cout << "The root of '" << chordName << "' is '" << root << "'" << endl;
+	return root;
+}
+
+string getBass(string chordName)
+{
+	string bass;
+	
+	int indexOfSlash = chordName.find("/");
+	
+	if (indexOfSlash != string::npos)
+	{
+		bass = chordName.substr(indexOfSlash+1);
+	}
+	else
+	{
+		bass = getRoot(chordName);
+	}
+	//cout << "The bass of '" << chordName << "' is '" << bass << "'" << endl;
+	return bass;
 }
 
 string getChordType(string chordName)
 {
 	int indexOfFirstCharOfChordType = getRoot(chordName).size();
-	return chordName.substr(indexOfFirstCharOfChordType, string::npos);
+	string chordType = chordName.substr(indexOfFirstCharOfChordType, string::npos);
+	if (chordType.size() == 0) chordType = "M"; // blank chord type implies major
+	return chordType;
 }
 
 void toggle(bool& booleanValue)
@@ -143,7 +178,7 @@ void debug()
 	cout << endl << "Options: " << endl;
 	cout << "Logs enabled (default 1): " << displayLogs << endl;
 	cout << "Bright mode (default 0):" << brightMode << endl;
-	cout << "Indicate root (default 0):" << indicateRoot << endl;
+	cout << "Indicate bass (default 0):" << indicateBass << endl;
 	
 }
 
@@ -172,6 +207,37 @@ vector<string> getLines(string filename)
     return lines;
 }
 
+vector<string> split(string str, char delim)
+{
+	vector<string> words;
+	string currentWord = "";
+	
+	for (int i = 0; i < str.size(); i++)
+	{
+		char c = str[i];
+		
+		if (c == delim)
+		{
+			if (currentWord.size() == 0)
+			{
+				// do nothing
+			}
+			else // finished building current word
+			{
+				words.push_back(currentWord);
+				currentWord = "";
+			}
+		}
+		
+		else
+		{
+			currentWord += c;
+		}
+	}
+	
+	return words;
+}
+
 void loadCPSfile(vector<string> lines)
 {
 	// Stuff all chord names in the chord progression vector
@@ -187,15 +253,50 @@ void loadCPSfile(vector<string> lines)
 		
 		if (foundChordsSection)
 		{
-			// parse chords...
-			// delimit by whitespace into word array
-			// if see '|' then skip to next word
-			// if see '_' then split into chord and scale
-			// chord name ("CM7") goes into chord progression vector
-			// scale name ("C'ionian") goes into scale progression vector (make sure to append root if not present)
-			// if no '_' then add "empty" to scaleProgression vector to keep indecies consistent
-			// if see '/' or '.' then repeat last chord: chordProgression.push_back(chordProgression.back())
-			//                                           scaleProgression.push_back(scaleProgression.back())
+			vector<string> words = split(line, ' ');
+			
+			for (int i = 0; i < words.size(); i++)
+			{
+				string word = words[i];
+				
+				string chord = "";
+				string scale = "empty";
+				
+				if (word.compare("|") == 0)
+				{
+					// skip
+					continue;
+				}
+				else if (word.compare(".") == 0 || word.compare("/") == 0)
+				{
+					// repeat
+					chord = chordProgression.back();
+					scale = scaleProgression.back();
+				}
+				else if (word.find("_") != string::npos)
+				{
+					// everything before '_' is chord, everything after '_' is scale
+					int indexOfUnderscore = word.find("_");
+					
+					chord = word.substr(0, indexOfUnderscore);
+					scale = word.substr(indexOfUnderscore+1);
+					
+					if (getRoot(scale).size() == 0)
+					{
+						//cout << "Appending root note '" << getRoot(chord) << "' from chord '" << chord << "' to scale '" << scale << "'" << endl;
+						scale = getRoot(chord) + scale; // append root of chord to scale name
+					}
+				}
+				else
+				{
+					chord = word;
+				}
+				
+				chordProgression.push_back(chord);
+				scaleProgression.push_back(scale);
+				
+			}
+			
 		}
 		
 		else if (endsWith(line, "BPM"))
@@ -333,9 +434,9 @@ bool processOption(int argNumber)
 	{
 		toggle(brightMode);
 	}
-	else if (arg.compare(indicateRootOption) == 0)
+	else if (arg.compare(indicateBassOption) == 0)
 	{
-		toggle(indicateRoot);
+		toggle(indicateBass);
 	}
 	else
 	{
@@ -389,6 +490,8 @@ void loadConfig()
 
 string normalizeBrightness(string chord)
 {
+	string normalizedChord = "";
+	
 	bool foundOne = false;
 	bool foundTwo = false;
 	
@@ -404,9 +507,18 @@ string normalizeBrightness(string chord)
 	{
 		for (int i = 0; i < chord.size(); i++)
 		{
-			if (chord[i] == '1') chord[i] = '2';
+			if (chord[i] == '1') normalizedChord += '2';
+			else normalizedChord += '0';
 		}
+		
+		return normalizedChord;
 	}
+	
+	else
+	{
+		return chord;
+	}
+	
 }
 
 string combineChords(string chord1, string chord2)
@@ -424,67 +536,86 @@ string combineChords(string chord1, string chord2)
 	return combinedChord;
 }
 
+string copyString(string str)
+{
+	string copiedString = "";
+	
+	for (int i = 0; i < str.size(); i++)
+	{
+		copiedString += str[i];
+	}
+	
+	return copiedString;
+}
+
 string shiftStringRight(string str, int offset)
 {
-	rotate(str.begin(), str.begin()+(str.size()-offset), str.end());
+	string rotatedStr = copyString(str);
+	
+	rotate(rotatedStr.rbegin(), rotatedStr.rbegin()+offset, rotatedStr.rend());
+	//cout << "Original string: '" << str << "' Rotated string: '" << rotatedStr << "' with offset of " << offset << endl;
+	return rotatedStr;
 }
 
 string transposeChord(string chordType, string root)
 {
+	string chordNoteString = chordMap[chordType];
+	
 	if (root.compare("C") == 0)
 	{
-		return shiftStringRight(chordType, 0);
+		return shiftStringRight(chordNoteString, 0);
 	}	
 	else if (root.compare("C#") == 0 || root.compare("Db") == 0)
 	{
-		return shiftStringRight(chordType, 1);
+		return shiftStringRight(chordNoteString, 1);
 	}	
 	else if (root.compare("D") == 0)
 	{
-		return shiftStringRight(chordType, 2);
+		return shiftStringRight(chordNoteString, 2);
 	}	
 	else if (root.compare("D#") == 0 || root.compare("Eb") == 0)
 	{
-		return shiftStringRight(chordType, 3);
+		return shiftStringRight(chordNoteString, 3);
 	}
 	else if (root.compare("E") == 0)
 	{
-		return shiftStringRight(chordType, 4);
+		return shiftStringRight(chordNoteString, 4);
 	}
 	else if (root.compare("F") == 0)
 	{
-		return shiftStringRight(chordType, 5);
+		return shiftStringRight(chordNoteString, 5);
 	}
 	else if (root.compare("F#") == 0 || root.compare("Gb") == 0)
 	{
-		return shiftStringRight(chordType, 6);
+		return shiftStringRight(chordNoteString, 6);
 	}
 	else if (root.compare("G") == 0)
 	{
-		return shiftStringRight(chordType, 7);
+		return shiftStringRight(chordNoteString, 7);
 	}
 	else if (root.compare("G#") == 0 || root.compare("Ab") == 0)
 	{
-		return shiftStringRight(chordType, 8);
+		return shiftStringRight(chordNoteString, 8);
 	}
 	else if (root.compare("A") == 0)
 	{
-		return shiftStringRight(chordType, 9);
+		return shiftStringRight(chordNoteString, 9);
 	}
 	else if (root.compare("A#") == 0 || root.compare("Bb") == 0)
 	{
-		return shiftStringRight(chordType, 10);
+		return shiftStringRight(chordNoteString, 10);
 	}
 	else if (root.compare("B") == 0)
 	{
-		return shiftStringRight(chordType, 11);
+		return shiftStringRight(chordNoteString, 11);
 	}
 	else
 	{
 		stringstream ss;
-		ss << "Unrecoginized root note: " << root;
+		ss << "Unrecoginized root note: '" << root << "' for chord type '" << chordType << "'";
 		log(ss.str());
 		errorStatus = 3;
+		return "000000000000";
 	}
 }
 
@@ -495,10 +626,11 @@ string generateChord(int index)
 
 string generateScale(int index)
 {
+	if (scaleProgression[index].compare("empty") == 0) return "000000000000";
 	return transposeChord(getChordType(scaleProgression[index]), getRoot(scaleProgression[index]));
 }
 
-vector<string> generateNoteProgression() 
+void generateNoteProgression() 
 {
 	for (int i = 0; i < chordProgression.size(); i++)
 	{
@@ -512,8 +644,8 @@ void initialize(int argc, char** argv)
 {
 	// Initialize variables
 	errorStatus = 0;
-	brightMode = true;
-	indicateRoot = false;
+	brightMode = false;
+	indicateBass = false;
 	displayLogs = true;
 	debugMode = false;
 	
@@ -575,7 +707,7 @@ int main(int argc, char** argv)
 		
 	cout << endl;
 
-	vector<string> noteProgression = generateNoteProgression();
+	generateNoteProgression();
 	
 	cout << "Note Progression: " << endl;
 	for (int i = 0; i < noteProgression.size(); i++)

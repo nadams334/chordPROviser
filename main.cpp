@@ -122,7 +122,8 @@ string getBass(string chordName)
 string getChordType(string chordName)
 {
 	int indexOfFirstCharOfChordType = getRoot(chordName).size();
-	string chordType = chordName.substr(indexOfFirstCharOfChordType, string::npos);
+	string chordType = chordName.substr(indexOfFirstCharOfChordType);
+	while (chordType.find("/") != string::npos) chordType = chordType.substr(0, chordType.size() -1);
 	if (chordType.size() == 0) chordType = "M"; // blank chord type implies major
 	return chordType;
 }
@@ -285,6 +286,12 @@ void loadCPSfile(vector<string> lines)
 					{
 						//cout << "Appending root note '" << getRoot(chord) << "' from chord '" << chord << "' to scale '" << scale << "'" << endl;
 						scale = getRoot(chord) + scale; // append root of chord to scale name
+					}
+					
+					// need to append bass note to scale if specified for chord but not for scale
+					if (scale.find("/") == string::npos && chord.find("/") != string::npos)
+					{
+						scale += "/" + getBass(chord);
 					}
 				}
 				else
@@ -557,59 +564,74 @@ string shiftStringRight(string str, int offset)
 	return rotatedStr;
 }
 
-string transposeChord(string chordType, string root)
+int getNoteIndex(string note)
+{
+	if (note.compare("C") == 0)
+	{
+		return 0;
+	}	
+	else if (note.compare("C#") == 0 || note.compare("Db") == 0)
+	{
+		return 1;
+	}	
+	else if (note.compare("D") == 0)
+	{
+		return 2;
+	}	
+	else if (note.compare("D#") == 0 || note.compare("Eb") == 0)
+	{
+		return 3;
+	}
+	else if (note.compare("E") == 0)
+	{
+		return 4;
+	}
+	else if (note.compare("F") == 0)
+	{
+		return 5;
+	}
+	else if (note.compare("F#") == 0 || note.compare("Gb") == 0)
+	{
+		return 6;
+	}
+	else if (note.compare("G") == 0)
+	{
+		return 7;
+	}
+	else if (note.compare("G#") == 0 || note.compare("Ab") == 0)
+	{
+		return 8;
+	}
+	else if (note.compare("A") == 0)
+	{
+		return 9;
+	}
+	else if (note.compare("A#") == 0 || note.compare("Bb") == 0)
+	{
+		return 10;
+	}
+	else if (note.compare("B") == 0)
+	{
+		return 11;
+	}
+	else
+	{
+		stringstream ss;
+		ss << "Unrecoginized note: '" << note << "'";
+		log(ss.str());
+		errorStatus = 3;
+		return -1;
+	}
+}
+
+string transposeChord(string chordType, string root, string bass)
 {
 	string chordNoteString = chordMap[chordType];
 	
-	if (root.compare("C") == 0)
-	{
-		return shiftStringRight(chordNoteString, 0);
-	}	
-	else if (root.compare("C#") == 0 || root.compare("Db") == 0)
-	{
-		return shiftStringRight(chordNoteString, 1);
-	}	
-	else if (root.compare("D") == 0)
-	{
-		return shiftStringRight(chordNoteString, 2);
-	}	
-	else if (root.compare("D#") == 0 || root.compare("Eb") == 0)
-	{
-		return shiftStringRight(chordNoteString, 3);
-	}
-	else if (root.compare("E") == 0)
-	{
-		return shiftStringRight(chordNoteString, 4);
-	}
-	else if (root.compare("F") == 0)
-	{
-		return shiftStringRight(chordNoteString, 5);
-	}
-	else if (root.compare("F#") == 0 || root.compare("Gb") == 0)
-	{
-		return shiftStringRight(chordNoteString, 6);
-	}
-	else if (root.compare("G") == 0)
-	{
-		return shiftStringRight(chordNoteString, 7);
-	}
-	else if (root.compare("G#") == 0 || root.compare("Ab") == 0)
-	{
-		return shiftStringRight(chordNoteString, 8);
-	}
-	else if (root.compare("A") == 0)
-	{
-		return shiftStringRight(chordNoteString, 9);
-	}
-	else if (root.compare("A#") == 0 || root.compare("Bb") == 0)
-	{
-		return shiftStringRight(chordNoteString, 10);
-	}
-	else if (root.compare("B") == 0)
-	{
-		return shiftStringRight(chordNoteString, 11);
-	}
-	else
+	int rootIndex = getNoteIndex(root);
+	int bassIndex = getNoteIndex(bass);
+	
+	if (rootIndex < 0)
 	{
 		stringstream ss;
 		ss << "Unrecoginized root note: '" << root << "' for chord type '" << chordType << "'";
@@ -617,17 +639,29 @@ string transposeChord(string chordType, string root)
 		errorStatus = 3;
 		return "000000000000";
 	}
+	else
+	{
+		chordNoteString = shiftStringRight(chordNoteString, rootIndex);
+	}
+	
+	// add bass note if not present in chord
+	if (bassIndex >= 0)
+	{
+		if (chordNoteString[bassIndex] == '0') chordNoteString[bassIndex] = '1';
+	}
+	
+	return chordNoteString;
 }
 
 string generateChord(int index)
 {
-	return transposeChord(getChordType(chordProgression[index]), getRoot(chordProgression[index]));
+	return transposeChord(getChordType(chordProgression[index]), getRoot(chordProgression[index]), getBass(chordProgression[index]));
 }
 
 string generateScale(int index)
 {
 	if (scaleProgression[index].compare("empty") == 0) return "000000000000";
-	return transposeChord(getChordType(scaleProgression[index]), getRoot(scaleProgression[index]));
+	return transposeChord(getChordType(scaleProgression[index]), getRoot(scaleProgression[index]), getBass(scaleProgression[index]));
 }
 
 void generateNoteProgression() 

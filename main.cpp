@@ -24,9 +24,13 @@ int errorStatus;
 
 // Song info
 int beatsPerMinute = 0;
+
 vector<string> chordProgression;
 vector<string> scaleProgression;
 vector<string> noteProgression;
+
+const int numChannels = 3;
+vector<string> noteProgressionByChannel[numChannels];
 
 const int TPQ = 48;
 
@@ -691,6 +695,24 @@ void generateNoteProgression()
 	}
 }
 
+void separateNoteProgressionByChannel()
+{
+	// Compare each chord to the chord that comes next
+	// Move shared notes to channel 3
+	// Move private notes to channel 1/2 (alternating each chord change)
+	// eg. CM7_'ionian to Cm7_'dorian
+	// 201021020102 -> [000020000002] [] [201001020100]
+}
+
+void createMidiFile()
+{
+	// Create MIDI file
+	// Add tempo midi event
+	// Add note ons and note offs based on note progression for every octave
+	// Make sure to use blinking lead-in
+	// Write MIDI file
+}
+
 void initialize(int argc, char** argv)
 {
 	// Initialize variables
@@ -763,6 +785,20 @@ int main(int argc, char** argv)
 	cout << "Note Progression: " << endl;
 	for (int i = 0; i < noteProgression.size(); i++)
 		cout << "[" << i << "]: " << noteProgression[i] << endl;
+		
+	separateNoteProgressionByChannel();
+	
+	cout << "Note Progression by Channel: " << endl;
+	for (int i = 0; i < numChannels; i++)
+	{
+		for (int j = 0; j < noteProgressionByChannel[i].size(); j++)
+		{
+			cout << "[" << i << "][" << j << "]: " << noteProgressionByChannel[i][j] << endl;
+			
+		}
+	}
+	
+	createMidiFile();
 
 	return errorStatus;
 }

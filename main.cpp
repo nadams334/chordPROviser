@@ -53,26 +53,18 @@ map<string, string> chordMap;
 // Command line args
 vector<string> commandLineArgs;
 
-bool displayLogs;
+bool loop;
 bool brightMode;
 bool indicateBass;
 bool debugMode;
 
 const string inputFileOption = "-i";
 const string outputFileOption = "-o";
-const string logFileOption = "-l";
+const string loopOption = "-l";
 const string brightnessOption = "-b";
 const string indicateBassOption = "-r";
 const string debugOption = "-d";
 
-
-void log(string message)
-{
-	if (displayLogs)
-	{
-		cout << message << endl;
-	}
-}
 
 bool endsWith(const string& a, const string& b) 
 {
@@ -160,7 +152,7 @@ string getArg(int index)
 	{
 		stringstream ss;
 		ss << "Attempting to access out-of-bounds command line argument #: " << index;
-		log(ss.str());
+		cerr << ss.str() << endl;
 		errorStatus = 2;
 		return "";
 	}
@@ -181,7 +173,7 @@ void debug()
 	}
 
 	cout << endl << "Options: " << endl;
-	cout << "Logs enabled (default 1): " << displayLogs << endl;
+	cout << "Loop enabled (default 1): " << loop << endl;
 	cout << "Bright mode (default 0):" << brightMode << endl;
 	cout << "Indicate bass (default 0):" << indicateBass << endl;
 	
@@ -360,7 +352,7 @@ void loadInput(string filename)
 		default:
 			stringstream ss;
 			ss << "Unsupported input file type for filename: " << filename << " (InputFileType::" << inputFileType << ")";
-			log(ss.str());
+			cerr << ss.str() << endl;
 			errorStatus = 2;
 			break;
 	}
@@ -376,7 +368,7 @@ void setInputFileType(string filename)
 		inputFileType = Other;
 		stringstream ss;
 		ss << "Unrecognized input file type for input file: " << filename;
-		log(ss.str());
+		cerr << ss.str() << endl;
 		errorStatus = 1;
 	}
 }
@@ -390,7 +382,7 @@ bool setIOFile(int argNumber, IOtype ioType)
 	{
 		stringstream ss;
 		ss << "Please supply an " << getTypeName(ioType) << " filename after the " << optionName << " option.";
-		log(ss.str());
+		cerr << ss.str() << endl;
 		errorStatus = 1;
 		return false;
 	}
@@ -409,7 +401,7 @@ bool setIOFile(int argNumber, IOtype ioType)
 		default:
 			stringstream ss;
 			ss << "Unrecoginized IO type: " << ioType;
-			log(ss.str());
+			cerr << ss.str() << endl;
 			errorStatus = -1;
 			return false;
 			break;
@@ -442,9 +434,9 @@ bool processOption(int argNumber)
 		setOutputFile(argNumber+1);
 		return true;
 	}
-	else if (arg.compare(logFileOption) == 0)
+	else if (arg.compare(loopOption) == 0)
 	{
-		toggle(displayLogs);
+		toggle(loop);
 	}	
 	else if (arg.compare(debugOption) == 0)
 	{
@@ -462,7 +454,7 @@ bool processOption(int argNumber)
 	{
 		stringstream ss;
 		ss << "Unrecoginized command line argument #" << argNumber << ": " << arg;
-		log(ss.str());
+		cerr << ss.str() << endl;
 	}
 	
 	return false;
@@ -631,7 +623,7 @@ int getNoteIndex(string note)
 	{
 		stringstream ss;
 		ss << "Unrecoginized note: '" << note << "'";
-		log(ss.str());
+		cerr << ss.str() << endl;
 		errorStatus = 3;
 		return -1;
 	}
@@ -719,7 +711,7 @@ void initialize(int argc, char** argv)
 	errorStatus = 0;
 	brightMode = false;
 	indicateBass = false;
-	displayLogs = true;
+	loop = true;
 	debugMode = false;
 	
 	inputFilename = "";

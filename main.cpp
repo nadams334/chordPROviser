@@ -29,8 +29,14 @@ vector<string> chordProgression;
 vector<string> scaleProgression;
 vector<string> noteProgression;
 
-const int numChannels = 3;
+const int numChannels = 5;
+const int ODD_CHORD_CHANNEL = 1;
+const int EVEN_CHORD_CHANNEL = 2;
+const int MIXED_CHORD_CHANNEL = 3;
+const int BASS_NOTE_CHANNEL = 4;
+
 vector<string> noteProgressionByChannel[numChannels];
+vector<int> chordChanges; // a list of every beat (zero-based) where a chord changes occurs
 
 const int TPQ = 48;
 
@@ -53,15 +59,15 @@ map<string, string> chordMap;
 // Command line args
 vector<string> commandLineArgs;
 
-bool loop;
+bool loopMode;
 bool brightMode;
 bool indicateBass;
 bool debugMode;
 
 const string inputFileOption = "-i";
 const string outputFileOption = "-o";
-const string loopOption = "-l";
-const string brightnessOption = "-b";
+const string loopModeOption = "-l";
+const string brightModeOption = "-b";
 const string indicateBassOption = "-r";
 const string debugOption = "-d";
 
@@ -173,9 +179,9 @@ void debug()
 	}
 
 	cout << endl << "Options: " << endl;
-	cout << "Loop enabled (default 1): " << loop << endl;
+	cout << "Loop mode enabled (default 1): " << loopMode << endl;
 	cout << "Bright mode (default 0):" << brightMode << endl;
-	cout << "Indicate bass (default 0):" << indicateBass << endl;
+	cout << "Indicate bass (default 1):" << indicateBass << endl;
 	
 }
 
@@ -197,11 +203,12 @@ vector<string> getLines(string filename)
 	vector<string> lines;
 	ifstream inputStream(filename.c_str());
 	
-	for (string line; getline(inputStream, line);) {
-        lines.push_back(line);
-    }
+	for (string line; getline(inputStream, line);) 
+	{
+        	lines.push_back(line);
+	}
     
-    return lines;
+	return lines;
 }
 
 vector<string> split(string str, char delim)
@@ -434,15 +441,15 @@ bool processOption(int argNumber)
 		setOutputFile(argNumber+1);
 		return true;
 	}
-	else if (arg.compare(loopOption) == 0)
+	else if (arg.compare(loopModeOption) == 0)
 	{
-		toggle(loop);
+		toggle(loopMode);
 	}	
 	else if (arg.compare(debugOption) == 0)
 	{
 		toggle(debugMode);
 	}
-	else if (arg.compare(brightnessOption) == 0)
+	else if (arg.compare(brightModeOption) == 0)
 	{
 		toggle(brightMode);
 	}
@@ -687,20 +694,162 @@ void generateNoteProgression()
 	}
 }
 
+void separateNotesOfChordChange(int indexOfFirstChord, int indexOfSecondChord, bool oddToEven)
+{
+		string firstChord = noteProgression[indexOfFirstChord];
+		string secondChord = noteProgression[indexOfSecondChord];
+		
+		string notesByChannel[numChannels];
+		for (int i = 1; i < numChannels; i++)
+		{
+			notesByChannel[i] = "000000000000";
+		}
+		
+		for (int i = 0; i < firstChord.size(); i++)
+		{
+			if (firstChord[i] > '0') // note is active
+			{
+				if (secondChord[i] > '0')
+				{
+					// chord change shares this note
+					notesByChannel[MIXED_CHORD_CHANNEL][i] = firstChord[i];
+				}
+				else // this note is only in first chord
+				{
+					if (oddToEven)
+					{
+						notesByChannel[ODD_CHORD_CHANNEL][i] = firstChord[i];
+					}
+					else // even to odd
+					{
+						notesByChannel[EVEN_CHORD_CHANNEL][i] = firstChord[i];
+					}
+				}
+			}
+		}
+		
+		if (indicateBass)
+		{
+			int indexOfBassNote = getNoteIndex(getBass(chordProgression[indexOfFirstChord]));
+			notesByChannel[BASS_NOTE_CHANNEL][indexOfBassNote] = firstChord[indexOfBassNote];
+		}
+		
+		// fill in all bars of the first chord
+		for (int beat = indexOfFirstChord; beat != indexOfSecondChord && beat < noteProgression.size(); beat++)
+		{
+			for (int channel = 1; channel < numChannels; channel++)
+			{
+				noteProgressionByChannel[channel][beat] = notesByChannel[channel];
+			}
+		}
+}
+
 void separateNoteProgressionByChannel()
 {
 	// Compare each chord to the chord that comes next
 	// Move shared notes to channel 3
 	// Move private notes to channel 1/2 (alternating each chord change)
-	// eg. CM7_'ionian to Cm7_'dorian
-	// 201021020102 -> [000020000002] [] [201001020100]
+	// eg. CM7_'ionian to Cm7_'aeolian
+	// 201021020102 -> [000020000102] [] [201001020000]
+	
+	// initialize noteProgressionByChannel
+	for (int channel = 1; channel < numChannels; channel++)
+	{
+		for (int beat = 0; beat < noteProgression.size(); beat++)
+			noteProgressionByChannel[channel].push_back("000000000000");
+	}
+	
+	bool isOddToEvenChordChange = true; // keep track of odd/even parity for each chord change
+	
+	for (int indexOfCurrentChord = 0; indexOfCurrentChord < noteProgression.size();)
+	{
+		// look ahead until we find next chord change (first chord that is different from the current)
+		
+		int indexOfNextChord;
+		for (indexOfNextChord = indexOfCurrentChord + 1; indexOfNextChord < noteProgression.size() && noteProgression[indexOfCurrentChord].compare(noteProgression[indexOfNextChord]) == 0; indexOfNextChord++);
+		
+		if (indexOfNextChord >= noteProgression.size()) // we're currently completing the last chord
+		{
+			if (indexOfCurrentChord == 0) // there are no chord changes
+			{
+				// Put all notes on same channel
+				for (int i = 0; i < noteProgression.size(); i++)
+				{
+					noteProgressionByChannel[ODD_CHORD_CHANNEL][i] = noteProgression[i];
+					noteProgressionByChannel[EVEN_CHORD_CHANNEL][i] = "000000000000";
+					noteProgressionByChannel[MIXED_CHORD_CHANNEL][i] = "000000000000";
+					noteProgressionByChannel[BASS_NOTE_CHANNEL][i] = "000000000000";
+					if (indicateBass)
+					{
+						int indexOfBassNote = getNoteIndex(getBass(chordProgression[i]));
+						noteProgressionByChannel[BASS_NOTE_CHANNEL][i][indexOfBassNote] = noteProgression[i][indexOfBassNote];
+					}
+				}
+			}
+			else // there are chord changes
+			{
+				if (loopMode)
+				{
+					// need to transistion to a chord and use different colors
+					
+					// if first and last chord same
+					if (noteProgression[0].compare(noteProgression[noteProgression.size()-1]) == 0)
+					{
+						indexOfNextChord = chordChanges[0];
+					}
+					else // first and last chord different
+					{
+						// transistion to first chord
+						indexOfNextChord = 0;
+						chordChanges.push_back(0); // indicate a chord change to first chord
+					}
+					
+					separateNotesOfChordChange(indexOfCurrentChord, indexOfNextChord, isOddToEvenChordChange);
+				}
+				else
+				{
+					// use same color
+					for (int i = indexOfCurrentChord; i < noteProgression.size(); i++)
+					{
+						if (isOddToEvenChordChange)
+						{
+							noteProgressionByChannel[ODD_CHORD_CHANNEL][i] = noteProgression[i];
+							noteProgressionByChannel[EVEN_CHORD_CHANNEL][i] = "000000000000";
+						}
+						else // even to odd
+						{
+							noteProgressionByChannel[EVEN_CHORD_CHANNEL][i] = noteProgression[i];
+							noteProgressionByChannel[ODD_CHORD_CHANNEL][i] = "000000000000";
+						}
+						noteProgressionByChannel[MIXED_CHORD_CHANNEL][i] = "000000000000";
+						noteProgressionByChannel[BASS_NOTE_CHANNEL][i] = "000000000000";
+						if (indicateBass)
+						{
+							int indexOfBassNote = getNoteIndex(getBass(chordProgression[i]));
+							noteProgressionByChannel[BASS_NOTE_CHANNEL][i][indexOfBassNote] = noteProgression[i][indexOfBassNote];
+						}
+					}
+				}
+			}
+			break; // finished separating notes into channels for each chord
+		} 
+		
+		// create transition for non-final chord change
+		
+		chordChanges.push_back(indexOfNextChord);
+		
+		separateNotesOfChordChange(indexOfCurrentChord, indexOfNextChord, isOddToEvenChordChange);
+		
+		toggle(isOddToEvenChordChange);
+		indexOfCurrentChord = indexOfNextChord; // point to next chord
+	}
 }
 
 void createMidiFile()
 {
 	// Create MIDI file
 	// Add tempo midi event
-	// Add note ons and note offs based on note progression for every octave
+	// Add note ons and note offs for every octave based on chord changes to the appropriate channel
 	// Make sure to use blinking lead-in
 	// Write MIDI file
 }
@@ -710,8 +859,8 @@ void initialize(int argc, char** argv)
 	// Initialize variables
 	errorStatus = 0;
 	brightMode = false;
-	indicateBass = false;
-	loop = true;
+	indicateBass = true;
+	loopMode = true;
 	debugMode = false;
 	
 	inputFilename = "";
@@ -744,50 +893,71 @@ void initialize(int argc, char** argv)
 	
 	loadInput(inputFilename);
 	
+	if (chordProgression.size() == 0)
+	{
+		cerr << "No chords found in input file. Exiting..." << endl;
+		errorStatus = 2;
+		exit(errorStatus);
+	}	
 }
 
 int main(int argc, char** argv) 
 {	
 	initialize(argc, argv);
 	
-	cout << "Chord Types: " << endl;
-	for (map<string, string>::const_iterator it = chordMap.begin(); it != chordMap.end(); it++)
+	if (debugMode)
 	{
-		cout << it->first << "   :   " << it->second << endl;
+		cout << "Chord Types: " << endl;
+		for (map<string, string>::const_iterator it = chordMap.begin(); it != chordMap.end(); it++)
+		{
+			cout << it->first << "   :   " << it->second << endl;
+		}	
+		cout << endl;
+	
+		cout << "BPM: " << beatsPerMinute << endl;
+		cout << endl;
+	
+		cout << "Chord Progression: " << endl;
+		for (int i = 0; i < chordProgression.size(); i++)
+			cout << "[" << i << "]: " << chordProgression[i] << endl;
+		
+		cout << endl;
+	
+		cout << "Scale Progression: " << endl;
+		for (int i = 0; i < scaleProgression.size(); i++)
+			cout << "[" << i << "]: " << scaleProgression[i] << endl;
+		
+		cout << endl;
 	}
-	cout << endl;
-	
-	cout << "BPM: " << beatsPerMinute << endl;
-	cout << endl;
-	
-	cout << "Chord Progression: " << endl;
-	for (int i = 0; i < chordProgression.size(); i++)
-		cout << "[" << i << "]: " << chordProgression[i] << endl;
-		
-	cout << endl;
-	
-	cout << "Scale Progression: " << endl;
-	for (int i = 0; i < scaleProgression.size(); i++)
-		cout << "[" << i << "]: " << scaleProgression[i] << endl;
-		
-	cout << endl;
 
 	generateNoteProgression();
 	
-	cout << "Note Progression: " << endl;
-	for (int i = 0; i < noteProgression.size(); i++)
-		cout << "[" << i << "]: " << noteProgression[i] << endl;
+	if (debugMode)
+	{
+		cout << "Note Progression: " << endl;
+		for (int i = 0; i < noteProgression.size(); i++)
+			cout << "[" << i << "]: " << noteProgression[i] << endl;	
+		cout << endl;
+	}
 		
 	separateNoteProgressionByChannel();
 	
-	cout << "Note Progression by Channel: " << endl;
-	for (int i = 0; i < numChannels; i++)
+	if (debugMode)
 	{
-		for (int j = 0; j < noteProgressionByChannel[i].size(); j++)
+		cout << "Note Progression by Channel: " << endl;
+		for (int i = 1; i < numChannels; i++)
 		{
-			cout << "[" << i << "][" << j << "]: " << noteProgressionByChannel[i][j] << endl;
-			
+			for (int j = 0; j < noteProgressionByChannel[i].size(); j++)
+			{
+				cout << "[" << i << "][" << j << "]: " << noteProgressionByChannel[i][j] << endl;
+			}
 		}
+		cout << endl;
+		
+		cout << "Chord changes: " << endl;
+		for (int i = 0; i < chordChanges.size(); i++)
+			cout << "[" << i << "]: " << "Beat #" << chordChanges[i] << endl;
+		cout << endl;
 	}
 	
 	createMidiFile();

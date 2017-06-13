@@ -64,12 +64,14 @@ bool brightMode;
 bool indicateBass;
 bool debugMode;
 
-const string inputFileOption = "-i";
-const string outputFileOption = "-o";
-const string loopModeOption = "-l";
-const string brightModeOption = "-b";
-const string indicateBassOption = "-r";
-const string debugOption = "-d";
+const string INPUT_FILE_OPTION = "-i";
+const string OUTPUT_FILE_OPTION = "-o";
+const string LOOP_MODE_OPTION = "-l";
+const string BRIGHT_MODE_OPTION = "-b";
+const string INDICATE_BASS_OPTION = "-r";
+const string DEBUG_OPTION = "-d";
+
+const string EMPTY_NOTE_STRING = "000000000000";
 
 
 bool endsWith(const string& a, const string& b) 
@@ -398,11 +400,11 @@ bool setIOFile(int argNumber, IOtype ioType)
 	{
 		case Input:
 			setInputFileType(arg);
-			optionName = inputFileOption;
+			optionName = INPUT_FILE_OPTION;
 			inputFilename = arg;
 			break;
 		case Output:
-			optionName = outputFileOption;
+			optionName = OUTPUT_FILE_OPTION;
 			outputFilename = arg;
 			break;
 		default:
@@ -431,29 +433,29 @@ bool processOption(int argNumber)
 {
 	string arg = getArg(argNumber);
 
-	if (arg.compare(inputFileOption) == 0)
+	if (arg.compare(INPUT_FILE_OPTION) == 0)
 	{
 		setInputFile(argNumber+1);
 		return true;
 	}	
-	else if (arg.compare(outputFileOption) == 0)
+	else if (arg.compare(OUTPUT_FILE_OPTION) == 0)
 	{
 		setOutputFile(argNumber+1);
 		return true;
 	}
-	else if (arg.compare(loopModeOption) == 0)
+	else if (arg.compare(LOOP_MODE_OPTION) == 0)
 	{
 		toggle(loopMode);
 	}	
-	else if (arg.compare(debugOption) == 0)
+	else if (arg.compare(DEBUG_OPTION) == 0)
 	{
 		toggle(debugMode);
 	}
-	else if (arg.compare(brightModeOption) == 0)
+	else if (arg.compare(BRIGHT_MODE_OPTION) == 0)
 	{
 		toggle(brightMode);
 	}
-	else if (arg.compare(indicateBassOption) == 0)
+	else if (arg.compare(INDICATE_BASS_OPTION) == 0)
 	{
 		toggle(indicateBass);
 	}
@@ -654,6 +656,15 @@ string getChordNoteString(string chordType)
 string transposeChord(string chordType, string root, string bass)
 {
 	string chordNoteString = getChordNoteString(chordType);
+		
+	if (chordNoteString.size() == 0)
+	{
+		cerr << "Unrecogonized chord type: " << chordType << endl;
+		chordNoteString = EMPTY_NOTE_STRING;
+	}
+	
+	if (chordNoteString.compare(EMPTY_NOTE_STRING) == 0) 
+		return chordNoteString;
 	
 	int rootIndex = getNoteIndex(root);
 	int bassIndex = getNoteIndex(bass);
@@ -680,7 +691,6 @@ string generateChord(int index)
 
 string generateScale(int index)
 {
-	if (scaleProgression[index].compare("empty") == 0) return "000000000000";
 	return transposeChord(getChordType(scaleProgression[index]), getRoot(scaleProgression[index]), getBass(scaleProgression[index]));
 }
 
@@ -702,7 +712,7 @@ void separateNotesOfChordChange(int indexOfFirstChord, int indexOfSecondChord, b
 		string notesByChannel[numChannels];
 		for (int i = 1; i < numChannels; i++)
 		{
-			notesByChannel[i] = "000000000000";
+			notesByChannel[i] = EMPTY_NOTE_STRING;
 		}
 		
 		for (int i = 0; i < firstChord.size(); i++)
@@ -756,7 +766,7 @@ void separateNoteProgressionByChannel()
 	for (int channel = 1; channel < numChannels; channel++)
 	{
 		for (int beat = 0; beat < noteProgression.size(); beat++)
-			noteProgressionByChannel[channel].push_back("000000000000");
+			noteProgressionByChannel[channel].push_back(EMPTY_NOTE_STRING);
 	}
 	
 	bool isOddToEvenChordChange = true; // keep track of odd/even parity for each chord change
@@ -776,9 +786,9 @@ void separateNoteProgressionByChannel()
 				for (int i = 0; i < noteProgression.size(); i++)
 				{
 					noteProgressionByChannel[ODD_CHORD_CHANNEL][i] = noteProgression[i];
-					noteProgressionByChannel[EVEN_CHORD_CHANNEL][i] = "000000000000";
-					noteProgressionByChannel[MIXED_CHORD_CHANNEL][i] = "000000000000";
-					noteProgressionByChannel[BASS_NOTE_CHANNEL][i] = "000000000000";
+					noteProgressionByChannel[EVEN_CHORD_CHANNEL][i] = EMPTY_NOTE_STRING;
+					noteProgressionByChannel[MIXED_CHORD_CHANNEL][i] = EMPTY_NOTE_STRING;
+					noteProgressionByChannel[BASS_NOTE_CHANNEL][i] = EMPTY_NOTE_STRING;
 					if (indicateBass)
 					{
 						int indexOfBassNote = getNoteIndex(getBass(chordProgression[i]));
@@ -814,15 +824,15 @@ void separateNoteProgressionByChannel()
 						if (isOddToEvenChordChange)
 						{
 							noteProgressionByChannel[ODD_CHORD_CHANNEL][i] = noteProgression[i];
-							noteProgressionByChannel[EVEN_CHORD_CHANNEL][i] = "000000000000";
+							noteProgressionByChannel[EVEN_CHORD_CHANNEL][i] = EMPTY_NOTE_STRING;
 						}
 						else // even to odd
 						{
 							noteProgressionByChannel[EVEN_CHORD_CHANNEL][i] = noteProgression[i];
-							noteProgressionByChannel[ODD_CHORD_CHANNEL][i] = "000000000000";
+							noteProgressionByChannel[ODD_CHORD_CHANNEL][i] = EMPTY_NOTE_STRING;
 						}
-						noteProgressionByChannel[MIXED_CHORD_CHANNEL][i] = "000000000000";
-						noteProgressionByChannel[BASS_NOTE_CHANNEL][i] = "000000000000";
+						noteProgressionByChannel[MIXED_CHORD_CHANNEL][i] = EMPTY_NOTE_STRING;
+						noteProgressionByChannel[BASS_NOTE_CHANNEL][i] = EMPTY_NOTE_STRING;
 						if (indicateBass)
 						{
 							int indexOfBassNote = getNoteIndex(getBass(chordProgression[i]));
@@ -919,14 +929,12 @@ int main(int argc, char** argv)
 	
 		cout << "Chord Progression: " << endl;
 		for (int i = 0; i < chordProgression.size(); i++)
-			cout << "[" << i << "]: " << chordProgression[i] << endl;
-		
+			cout << "[" << i << "]: " << chordProgression[i] << " | Root: " << getRoot(chordProgression[i]) << " | Bass: " << getBass(chordProgression[i]) << " | Type: " << getChordType(chordProgression[i]) << endl;
 		cout << endl;
 	
 		cout << "Scale Progression: " << endl;
 		for (int i = 0; i < scaleProgression.size(); i++)
-			cout << "[" << i << "]: " << scaleProgression[i] << endl;
-		
+			cout << "[" << i << "]: " << scaleProgression[i] << " | Root: " << getRoot(scaleProgression[i]) << " | Bass: " << getBass(scaleProgression[i]) << " | Type: " << getChordType(scaleProgression[i]) << endl;
 		cout << endl;
 	}
 

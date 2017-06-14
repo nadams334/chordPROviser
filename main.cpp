@@ -4,6 +4,7 @@
 
 #include <string>
 #include <stdio.h>
+#include <stdint.h>
 #include <vector>
 #include <algorithm>
 #include <iostream>
@@ -29,19 +30,20 @@ vector<string> chordProgression;
 vector<string> scaleProgression;
 vector<string> noteProgression;
 
-const int numChannels = 5;
-const int ODD_CHORD_CHANNEL = 1;
-const int EVEN_CHORD_CHANNEL = 2;
-const int MIXED_CHORD_CHANNEL = 3;
-const int BASS_NOTE_CHANNEL = 4;
+const int numOctaves = 10;
+const int numChannels = 4;
+const int ODD_CHORD_CHANNEL = 0;
+const int EVEN_CHORD_CHANNEL = 1;
+const int MIXED_CHORD_CHANNEL = 2;
+const int BASS_NOTE_CHANNEL = 3;
 
 vector<string> noteProgressionByChannel[numChannels];
 vector<int> chordChanges; // a list of every beat (zero-based) where a chord changes occurs
 
-const int TPQ = 48;
+const int TICKS_PER_QUARTER_NOTE = 48;
 
 // File I/O
-MidiFile* midiFile;
+MidiFile midiOutputFile;
 
 enum IOtype { Input, Output };
 enum InputFileType { MMA, TXT, Other };
@@ -55,6 +57,11 @@ InputFileType inputFileType;
 const string CHORD_LIST_FILENAME = "config/chords.cfg";
 
 map<string, string> chordMap;
+
+const int dimnessFactor = 8;
+const int brightnessFactor = 10; // bright notes will be this factor brighter than dim notes (ie. 10 = 10x as bright)
+const int dimNoteVelocity = dimnessFactor - 1;
+const int brightNoteVelocity = (dimnessFactor * brightnessFactor) - 1;
 
 // Command line args
 vector<string> commandLineArgs;
@@ -80,9 +87,19 @@ bool endsWith(const string& a, const string& b)
     return std::equal(a.begin() + a.size() - b.size(), a.end(), b.begin());
 }
 
-int getMicrosecondsPerBeat(int beatsPerMinute)
+uint32_t getMicrosecondsPerBeat(int beatsPerMinute)
 {
-	return 60000000/beatsPerMinute; // 60,000,000 microseconds per minute / x beats per minute = 60,000,000/x microseconds per beat
+	// 60,000,000 microseconds per minute / x beats per minute = 60,000,000/x microseconds per beat
+	unsigned long microsecondsPerMinute = 60000000;
+	uint32_t microsecondsPerBeat = microsecondsPerMinute/beatsPerMinute;
+	
+	if (debugMode)
+	{
+		cout << "Converted " << beatsPerMinute << " BPM to " << microsecondsPerBeat << " microseconds per quarter note." << endl;
+		cout << endl;
+	}
+	
+	return microsecondsPerBeat;
 }
 
 string getRoot(string chordName)
@@ -168,11 +185,8 @@ string getArg(int index)
 	return commandLineArgs.at(index);
 }
 
-void debug()
+void debugOptions()
 {
-	if (!debugMode)
-		return;
-
 	cout << endl << "Args(" << getArgCount() << "): " << endl;
 
 	for (int i = 0; i < getArgCount(); i++)
@@ -182,9 +196,10 @@ void debug()
 
 	cout << endl << "Options: " << endl;
 	cout << "Loop mode enabled (default 1): " << loopMode << endl;
-	cout << "Bright mode (default 0):" << brightMode << endl;
-	cout << "Indicate bass (default 1):" << indicateBass << endl;
+	cout << "Bright mode (default 0): " << brightMode << endl;
+	cout << "Indicate bass (default 1): " << indicateBass << endl;
 	
+	cout << endl;
 }
 
 string getTypeName(IOtype ioType)
@@ -710,7 +725,7 @@ void separateNotesOfChordChange(int indexOfFirstChord, int indexOfSecondChord, b
 		string secondChord = noteProgression[indexOfSecondChord];
 		
 		string notesByChannel[numChannels];
-		for (int i = 1; i < numChannels; i++)
+		for (int i = 0; i < numChannels; i++)
 		{
 			notesByChannel[i] = EMPTY_NOTE_STRING;
 		}
@@ -742,12 +757,14 @@ void separateNotesOfChordChange(int indexOfFirstChord, int indexOfSecondChord, b
 		{
 			int indexOfBassNote = getNoteIndex(getBass(chordProgression[indexOfFirstChord]));
 			notesByChannel[BASS_NOTE_CHANNEL][indexOfBassNote] = firstChord[indexOfBassNote];
+			notesByChannel[ODD_CHORD_CHANNEL][indexOfBassNote] = '0';
+			notesByChannel[EVEN_CHORD_CHANNEL][indexOfBassNote] = '0';
 		}
 		
 		// fill in all bars of the first chord
 		for (int beat = indexOfFirstChord; beat != indexOfSecondChord && beat < noteProgression.size(); beat++)
 		{
-			for (int channel = 1; channel < numChannels; channel++)
+			for (int channel = 0; channel < numChannels; channel++)
 			{
 				noteProgressionByChannel[channel][beat] = notesByChannel[channel];
 			}
@@ -763,7 +780,7 @@ void separateNoteProgressionByChannel()
 	// 201021020102 -> [000020000102] [] [201001020000]
 	
 	// initialize noteProgressionByChannel
-	for (int channel = 1; channel < numChannels; channel++)
+	for (int channel = 0; channel < numChannels; channel++)
 	{
 		for (int beat = 0; beat < noteProgression.size(); beat++)
 			noteProgressionByChannel[channel].push_back(EMPTY_NOTE_STRING);
@@ -793,6 +810,7 @@ void separateNoteProgressionByChannel()
 					{
 						int indexOfBassNote = getNoteIndex(getBass(chordProgression[i]));
 						noteProgressionByChannel[BASS_NOTE_CHANNEL][i][indexOfBassNote] = noteProgression[i][indexOfBassNote];
+						noteProgressionByChannel[ODD_CHORD_CHANNEL][i][indexOfBassNote] = '0';
 					}
 				}
 			}
@@ -837,6 +855,8 @@ void separateNoteProgressionByChannel()
 						{
 							int indexOfBassNote = getNoteIndex(getBass(chordProgression[i]));
 							noteProgressionByChannel[BASS_NOTE_CHANNEL][i][indexOfBassNote] = noteProgression[i][indexOfBassNote];
+							noteProgressionByChannel[ODD_CHORD_CHANNEL][i][indexOfBassNote] = '0';
+							noteProgressionByChannel[EVEN_CHORD_CHANNEL][i][indexOfBassNote] = '0';
 						}
 					}
 				}
@@ -855,6 +875,91 @@ void separateNoteProgressionByChannel()
 	}
 }
 
+// adds a MIDI message issusing the set_tempo command to the specified BPM
+void setTempo(int bpm)
+{
+	/*
+	unsigned char statusByte = 0xFF; // meta message
+	unsigned char metaByte = 0x51; // set tempo message
+	unsigned char lengthByte = 0x04; // tempo stored in 4 bytes
+	
+	uint32_t microsecondsPerQuarterNote = getMicrosecondsPerBeat(bpm);
+	
+	// construct message byte array
+	vector<unsigned char> setTempoMessage;
+	setTempoMessage.push_back(statusByte);
+	setTempoMessage.push_back(metaByte);
+	setTempoMessage.push_back(lengthByte);
+	for (int i = int(lengthByte) - 1; i >= 0; i--)
+	{
+		unsigned char tempoByte = *((unsigned char*)&microsecondsPerQuarterNote+i);
+		setTempoMessage.push_back(tempoByte);
+	}
+	
+	if (debugMode)
+	{
+		cout << "Constructing SET_TEMPO message with BPM=" << bpm << ": " << endl;
+		for (int i = 0; i < setTempoMessage.size(); i++)
+		{
+			printf("[%d]: 0x%X\n", i, setTempoMessage[i]);
+		}
+		cout << endl;
+	}
+	
+	for (int channel = 0; channel < numChannels; channel++)
+	{
+		midiOutputFile.addEvent(channel, 0, setTempoMessage); // add tempo change at start of each channel
+	}
+	*/
+	
+	for (int channel = 0; channel < numChannels; channel++)
+	{
+		midiOutputFile.addTempo(channel, 0, bpm);
+	}
+	
+}
+
+// Adds note on or off message to output file for the specified note on all octaves on the specified channel with the specified time
+void addNoteMessage(int channel, int noteIndex, int noteBrightness, int ticks)
+{
+	unsigned char statusByte = 0x90; // note on message
+	if (noteBrightness == 0) // note off message
+		statusByte = 0x80;
+	statusByte += channel;
+	
+	unsigned char velocityByte = 0;
+	if (noteBrightness == 1)
+		velocityByte = dimNoteVelocity;
+	else if (noteBrightness == 2)
+		velocityByte = brightNoteVelocity;
+		
+	unsigned char pitchByte;
+	for (int octave = 0; octave < numOctaves; octave++)
+	{
+		pitchByte = (12*octave)+noteIndex;
+		
+		vector<unsigned char> noteMessage;
+		noteMessage.push_back(statusByte);
+		noteMessage.push_back(pitchByte);
+		noteMessage.push_back(velocityByte);
+		
+		midiOutputFile.addEvent(channel, ticks, noteMessage);
+		
+		if (debugMode)
+		{
+			cout << "Created the following note message with the following parameters:" << endl;
+			cout << "Channel: " << channel << " | Note Index: " << noteIndex << " | Note Brightness: " << noteBrightness << " | Ticks: " << ticks << endl;
+			cout << "Message: ";
+			for (int i = 0; i < noteMessage.size(); i++)
+			{
+				printf("0x%X ", noteMessage[i]);
+			}
+			cout << endl;
+			cout << endl;
+		}
+	}
+}
+
 void createMidiFile()
 {
 	// Create MIDI file
@@ -862,6 +967,35 @@ void createMidiFile()
 	// Add note ons and note offs for every octave based on chord changes to the appropriate channel
 	// Make sure to use blinking lead-in
 	// Write MIDI file
+	
+	// initialize midi file
+	midiOutputFile.absoluteTicks();
+	midiOutputFile.addTrack(numChannels-1); // 1 channel already present
+	midiOutputFile.setTicksPerQuarterNote(TICKS_PER_QUARTER_NOTE);
+	
+	setTempo(beatsPerMinute);
+	
+	// add all note on and note off events
+	for (int channel = 0; channel < numChannels; channel++)
+	{
+		if (channel == BASS_NOTE_CHANNEL && !indicateBass) continue;
+		
+		for (int noteIndex = 0; noteIndex < EMPTY_NOTE_STRING.size(); noteIndex++)
+		{
+			// start song off with the first chord
+			addNoteMessage(channel, noteIndex, noteProgressionByChannel[channel][0][noteIndex]-'0', 0);
+		}
+		
+	}
+	
+	// sort and write finished output file
+	midiOutputFile.sortTracks();
+	midiOutputFile.write(outputFilename);
+	
+	if (debugMode)
+	{
+		midiOutputFile.writeBinascWithComments(outputFilename+".binasc");
+	}
 }
 
 void initialize(int argc, char** argv)
@@ -917,6 +1051,8 @@ int main(int argc, char** argv)
 	
 	if (debugMode)
 	{
+		debugOptions();
+		
 		cout << "Chord Types: " << endl;
 		for (map<string, string>::const_iterator it = chordMap.begin(); it != chordMap.end(); it++)
 		{
@@ -953,7 +1089,7 @@ int main(int argc, char** argv)
 	if (debugMode)
 	{
 		cout << "Note Progression by Channel: " << endl;
-		for (int i = 1; i < numChannels; i++)
+		for (int i = 0; i < numChannels; i++)
 		{
 			for (int j = 0; j < noteProgressionByChannel[i].size(); j++)
 			{
@@ -969,6 +1105,13 @@ int main(int argc, char** argv)
 	}
 	
 	createMidiFile();
+
+	if (errorStatus == 0)
+	{
+		cout << endl;
+		cout << "Output file '" << outputFilename << "' successfully written." << endl;
+		cout << endl;
+	}
 
 	return errorStatus;
 }

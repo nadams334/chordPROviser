@@ -223,7 +223,8 @@ vector<string> getLines(string filename)
 	
 	for (string line; getline(inputStream, line);) 
 	{
-        	lines.push_back(line);
+		line.erase(remove(line.begin(), line.end(), '\r'), line.end()); // get rid of windows carriage returns
+        lines.push_back(line);
 	}
     
 	return lines;
@@ -1063,8 +1064,21 @@ void createMidiFile()
 					addNoteMessage(channel, noteIndex, noteProgressionByChannel[channel][beatOfChordChange][noteIndex]-'0', beatOfChordChange*TICKS_PER_QUARTER_NOTE);
 				}
 			}
+			else if (!loopMode)
+			{
+				return; // only show chord change lead-in back to beat 0 if loop mode is enabled
+			}
 			
-			// add chord lead-ins before each chord change
+			// add chord lead-in before chord change
+			for (int noteIndex = 0; noteIndex < EMPTY_NOTE_STRING.size(); noteIndex++)
+			{
+				int beatOfChangingChord = beatOfChordChange - 1;
+				if (beatOfChangingChord < 0) beatOfChangingChord = numBeats-1; // last beat in song
+				// on beat
+				addNoteMessage(channel, noteIndex, noteProgressionByChannel[channel][beatOfChangingChord][noteIndex]-'0', beatOfChangingChord*TICKS_PER_QUARTER_NOTE);
+				// off beat
+				addNoteMessage(channel, noteIndex, 0, (beatOfChangingChord*TICKS_PER_QUARTER_NOTE)+(TICKS_PER_QUARTER_NOTE/2));
+			}
 			
 		}
 		

@@ -31,7 +31,8 @@ vector<string> chordProgression;
 vector<string> scaleProgression;
 vector<string> noteProgression;
 
-const int numOctaves = 10;
+const int startingOctave = 3;
+const int endingOctave = 8;
 const int numChannels = 4;
 const int ODD_CHORD_CHANNEL = 0;
 const int EVEN_CHORD_CHANNEL = 1;
@@ -938,7 +939,7 @@ void addNoteMessage(int channel, int noteIndex, int noteBrightness, int ticks)
 		velocityByte = brightNoteVelocity;
 		
 	unsigned char pitchByte;
-	for (int octave = 0; octave < numOctaves; octave++)
+	for (int octave = startingOctave; octave < endingOctave; octave++)
 	{
 		pitchByte = (12*octave)+noteIndex;
 		
@@ -1044,7 +1045,11 @@ void createMidiFile()
 
 		for (int noteIndex = 0; noteIndex < EMPTY_NOTE_STRING.size(); noteIndex++)
 		{
-			addNoteMessage(channel, noteIndex, noteProgressionByChannel[channel][0][noteIndex]-'0', 0);
+			int noteBrightness = noteProgressionByChannel[channel][0][noteIndex]-'0';
+			if (noteBrightness > 0)
+			{
+				addNoteMessage(channel, noteIndex, noteBrightness, 0);
+			}
 		}
 	}
 		
@@ -1064,7 +1069,8 @@ void createMidiFile()
 				// add chord notes
 				for (int noteIndex = 0; noteIndex < EMPTY_NOTE_STRING.size(); noteIndex++)
 				{
-					addNoteMessage(channel, noteIndex, noteProgressionByChannel[channel][beatOfChordChange][noteIndex]-'0', beatOfChordChange*TICKS_PER_QUARTER_NOTE);
+					int noteBrightness = noteProgressionByChannel[channel][beatOfChordChange][noteIndex]-'0';
+					addNoteMessage(channel, noteIndex, noteBrightness, beatOfChordChange*TICKS_PER_QUARTER_NOTE);
 				}
 			}
 			else if (!loopMode)
@@ -1099,9 +1105,23 @@ void createMidiFile()
 	}
 
 	
+	// clear all notes after last beat in song
+	
+	for (int channel = 0; channel < numChannels; channel++)
+	{
+		for (int noteIndex = 0; noteIndex < EMPTY_NOTE_STRING.size(); noteIndex++)
+		{
+			int noteBrightness = noteProgressionByChannel[channel][numBeats-1][noteIndex] - '0';
+			if (noteBrightness > 0)
+			{
+				addNoteMessage(channel, noteIndex, 0, numBeats*TICKS_PER_QUARTER_NOTE);
+			}
+		}
+	}
+	
+	
 	// finalize and write output file
-
-	endAllTracks(numBeats*TICKS_PER_QUARTER_NOTE);
+	
 	midiOutputFile.sortTracks();
 	midiOutputFile.write(OUTPUT_DIRECTORY + outputFilename);
 	

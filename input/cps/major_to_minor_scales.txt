@@ -11,5 +11,5 @@ Tempo: 60 BPM
 
 Chords:
 
-| CM7 . . . | Cm7 . . . | 
-| CM7 . . . | Cm7 . . . |
+| CM7_'ionian . . . | Cm7_'aeolian . . . | 
+| CM7_'ionian . . . | Cm7_'aeolian . . . | 

@@ -978,8 +978,7 @@ void clearAllNotes(int ticks)
 
 void addEndOfTrackMessage(int channel, int ticks)
 {
-	clearAllNotesForChannel(channel, ticks);	
-	clearAllNotesForChannel(channel, ticks);	
+	clearAllNotesForChannel(channel, ticks);		
 	/*
 	unsigned char statusByte = 0xFF; // meta message
 	unsigned char metaByte = 0x2F; // end track message
@@ -1031,8 +1030,7 @@ void createMidiFile()
 	midiOutputFile.setTicksPerQuarterNote(TICKS_PER_QUARTER_NOTE);
 	
 	setTempo(beatsPerMinute);
-	
-	clearAllNotes(0);
+
 	
 	// add first chord
 

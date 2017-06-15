@@ -5,7 +5,7 @@ Folder: C:\Users\Nathan\Documents\chord_pulse\
 
 Style: Swing - 2 Feel
 
-Tempo: 100 BPM
+Tempo: 60 BPM
 
 --------------------------------------------------
 

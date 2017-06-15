@@ -25,6 +25,7 @@ int errorStatus;
 
 // Song info
 int beatsPerMinute = 0;
+int numBeats = 0;
 
 vector<string> chordProgression;
 vector<string> scaleProgression;
@@ -330,7 +331,6 @@ void loadCPSfile(vector<string> lines)
 				
 				chordProgression.push_back(chord);
 				scaleProgression.push_back(scale);
-				
 			}
 			
 		}
@@ -927,7 +927,7 @@ void addNoteMessage(int channel, int noteIndex, int noteBrightness, int ticks)
 		statusByte = 0x80;
 	statusByte += channel;
 	
-	unsigned char velocityByte = 0;
+	unsigned char velocityByte = 0x00;
 	if (noteBrightness == 1)
 		velocityByte = dimNoteVelocity;
 	else if (noteBrightness == 2)
@@ -960,6 +960,62 @@ void addNoteMessage(int channel, int noteIndex, int noteBrightness, int ticks)
 	}
 }
 
+void clearAllNotesForChannel(int channel, int ticks)
+{
+	for (int noteIndex = 0; noteIndex < EMPTY_NOTE_STRING.size(); noteIndex++)
+	{
+		addNoteMessage(channel, noteIndex, 0, ticks);
+	}
+}
+
+void clearAllNotes(int ticks)
+{
+	for (int channel = 0; channel < numChannels; channel++)
+	{
+		clearAllNotesForChannel(channel, ticks);
+	}
+}
+
+void addEndOfTrackMessage(int channel, int ticks)
+{
+	clearAllNotesForChannel(channel, ticks);	
+	clearAllNotesForChannel(channel, ticks);	
+	/*
+	unsigned char statusByte = 0xFF; // meta message
+	unsigned char metaByte = 0x2F; // end track message
+	unsigned char lengthByte = 0x00; // no data bytes for this message
+
+	vector<unsigned char> endOfTrackMessage;
+	endOfTrackMessage.push_back(statusByte);
+	endOfTrackMessage.push_back(metaByte);
+	endOfTrackMessage.push_back(lengthByte);
+		
+	midiOutputFile.addEvent(channel, ticks, endOfTrackMessage);
+		
+		if (debugMode)
+	{
+		cout << "Created the following end track message with the following parameters:" << endl;
+		cout << "Channel: " << channel << " | Ticks: " << ticks << endl;
+		cout << "Message: ";
+		for (int i = 0; i < endOfTrackMessage.size(); i++)
+		{
+			printf("0x%X ", endOfTrackMessage[i]);
+		}
+		cout << endl;
+		cout << endl;
+	}
+	*/
+}
+
+void endAllTracks(int ticks)
+{
+	for (int channel = 0; channel < numChannels; channel++)
+	{
+		if (!indicateBass && channel == BASS_NOTE_CHANNEL) continue;
+		addEndOfTrackMessage(channel, ticks);
+	}
+}
+
 void createMidiFile()
 {
 	// Create MIDI file
@@ -969,26 +1025,57 @@ void createMidiFile()
 	// Write MIDI file
 	
 	// initialize midi file
+	
 	midiOutputFile.absoluteTicks();
 	midiOutputFile.addTrack(numChannels-1); // 1 channel already present
 	midiOutputFile.setTicksPerQuarterNote(TICKS_PER_QUARTER_NOTE);
 	
 	setTempo(beatsPerMinute);
 	
-	// add all note on and note off events
+	clearAllNotes(0);
+	
+	// add first chord
+
 	for (int channel = 0; channel < numChannels; channel++)
 	{
 		if (channel == BASS_NOTE_CHANNEL && !indicateBass) continue;
-		
+
 		for (int noteIndex = 0; noteIndex < EMPTY_NOTE_STRING.size(); noteIndex++)
 		{
-			// start song off with the first chord
 			addNoteMessage(channel, noteIndex, noteProgressionByChannel[channel][0][noteIndex]-'0', 0);
+		}
+	}
+		
+	
+	// add all chord changes
+
+	for (int channel = 0; channel < numChannels; channel++)
+	{
+		if (channel == BASS_NOTE_CHANNEL && !indicateBass) continue;
+
+		for (int chordChange = 0; chordChange < chordChanges.size(); chordChange++)
+		{
+			int beatOfChordChange = chordChanges[chordChange];
+			
+			if (beatOfChordChange != 0) // don't need to re-add first chord, only need to add blinking lead-in
+			{
+				// add chord notes
+				for (int noteIndex = 0; noteIndex < EMPTY_NOTE_STRING.size(); noteIndex++)
+				{
+					addNoteMessage(channel, noteIndex, noteProgressionByChannel[channel][beatOfChordChange][noteIndex]-'0', beatOfChordChange*TICKS_PER_QUARTER_NOTE);
+				}
+			}
+			
+			// add chord lead-ins before each chord change
+			
 		}
 		
 	}
+
 	
-	// sort and write finished output file
+	// finalize and write output file
+
+	endAllTracks(numBeats*TICKS_PER_QUARTER_NOTE);
 	midiOutputFile.sortTracks();
 	midiOutputFile.write(outputFilename);
 	
@@ -1036,8 +1123,10 @@ void initialize(int argc, char** argv)
 	loadConfig();
 	
 	loadInput(inputFilename);
+
+	numBeats = chordProgression.size();
 	
-	if (chordProgression.size() == 0)
+	if (numBeats == 0)
 	{
 		cerr << "No chords found in input file. Exiting..." << endl;
 		errorStatus = 2;
@@ -1061,6 +1150,9 @@ int main(int argc, char** argv)
 		cout << endl;
 	
 		cout << "BPM: " << beatsPerMinute << endl;
+		cout << endl;
+		
+		cout << "Number of Beats: " << numBeats << endl;
 		cout << endl;
 	
 		cout << "Chord Progression: " << endl;

@@ -11,7 +11,21 @@ Tempo: 120 BPM
 
 Chords:
 
-Bbm9/Eb Ebm9 A+/Eb G+/Eb AbM9/Eb AbM9/Eb Bbm9/Eb Ebm9 A+/Eb G+/Eb AbM9/Eb AbM9/Eb 
+| Bbm9/Eb . . . | . . . . | Ebm9 . . . | . . . . |
 
-BM7/Bb G/Bb BM7/Bb G/Bb Bb7alt BM7/Bb AbM9 BM13/E 
+| A+/Eb . . . | G+/Eb . . . | AbM9/Eb . . . | AbM9/Eb . . . |
+
+| Bbm9/Eb . . . | . . . . | Ebm9 . . . | . . . . |
+
+| A+/Eb . . . | G+/Eb . . . | AbM9/Eb . . . | AbM9/Eb . . . |
+
+
+
+| BM7/Bb . . . | . . . . | G/Bb . . . | . . . . |
+
+| BM7/Bb . . . | . . . . | G/Bb . . . | . . . . |
+
+| Bb7alt . . . | . . . . | BM7/Bb . . . | . . . . |
+
+| AbM9 . . . | . . . . | BM13/E . . . | . . . . |
 

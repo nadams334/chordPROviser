@@ -54,6 +54,9 @@ string outputFilename;
 
 InputFileType inputFileType;
 
+const string OUTPUT_DIRECTORY = "output/";
+const string BINASC_DIRECTORY = "binasc/";
+
 // Config data
 const string CHORD_LIST_FILENAME = "config/chords.cfg";
 
@@ -1048,12 +1051,12 @@ void createMidiFile()
 	
 	// add all chord changes
 
-	for (int channel = 0; channel < numChannels; channel++)
+	for (int chordChange = 0; chordChange < chordChanges.size(); chordChange++)
 	{
-		if (channel == BASS_NOTE_CHANNEL && !indicateBass) continue;
-
-		for (int chordChange = 0; chordChange < chordChanges.size(); chordChange++)
+		for (int channel = 0; channel < numChannels; channel++)
 		{
+			if (channel == BASS_NOTE_CHANNEL && !indicateBass) continue;
+			
 			int beatOfChordChange = chordChanges[chordChange];
 			
 			if (beatOfChordChange != 0) // don't need to re-add first chord, only need to add blinking lead-in
@@ -1072,16 +1075,27 @@ void createMidiFile()
 			// add chord lead-in before chord change
 			for (int noteIndex = 0; noteIndex < EMPTY_NOTE_STRING.size(); noteIndex++)
 			{
+				int nextChordChannel;
+				if (chordChange % 2)
+				{
+					nextChordChannel = ODD_CHORD_CHANNEL;
+				}
+				else 
+				{
+					nextChordChannel = EVEN_CHORD_CHANNEL;
+				}
+				
 				int beatOfChangingChord = beatOfChordChange - 1;
 				if (beatOfChangingChord < 0) beatOfChangingChord = numBeats-1; // last beat in song
-				// on beat
-				addNoteMessage(channel, noteIndex, noteProgressionByChannel[channel][beatOfChangingChord][noteIndex]-'0', beatOfChangingChord*TICKS_PER_QUARTER_NOTE);
-				// off beat
-				addNoteMessage(channel, noteIndex, 0, (beatOfChangingChord*TICKS_PER_QUARTER_NOTE)+(TICKS_PER_QUARTER_NOTE/2));
+				if (noteProgression[beatOfChordChange][noteIndex] > '0' && noteProgression[beatOfChangingChord][noteIndex] == '0')
+				{
+					// on beat
+					addNoteMessage(nextChordChannel, noteIndex, noteProgressionByChannel[nextChordChannel][beatOfChordChange][noteIndex]-'0', beatOfChangingChord*TICKS_PER_QUARTER_NOTE);
+					// off beat
+					addNoteMessage(nextChordChannel, noteIndex, 0, (beatOfChangingChord*TICKS_PER_QUARTER_NOTE)+(TICKS_PER_QUARTER_NOTE/2));
+				}
 			}
-			
-		}
-		
+		}	
 	}
 
 	
@@ -1089,11 +1103,11 @@ void createMidiFile()
 
 	endAllTracks(numBeats*TICKS_PER_QUARTER_NOTE);
 	midiOutputFile.sortTracks();
-	midiOutputFile.write(outputFilename);
+	midiOutputFile.write(OUTPUT_DIRECTORY + outputFilename);
 	
 	if (debugMode)
 	{
-		midiOutputFile.writeBinascWithComments(outputFilename+".binasc");
+		midiOutputFile.writeBinascWithComments(BINASC_DIRECTORY + outputFilename + ".binasc");
 	}
 }
 

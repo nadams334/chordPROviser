@@ -1102,7 +1102,7 @@ void createMidiFile()
 				if (noteProgression[beatOfChordChange][noteIndex] > '0' && noteProgression[beatOfChangingChord][noteIndex] == '0')
 				{
 					// on beat
-					addNoteMessage(nextChordChannel, noteIndex, noteProgressionByChannel[nextChordChannel][beatOfChordChange][noteIndex]-'0', beatOfChangingChord*TICKS_PER_QUARTER_NOTE);
+					addNoteMessage(nextChordChannel, noteIndex, noteProgression[beatOfChordChange][noteIndex]-'0', beatOfChangingChord*TICKS_PER_QUARTER_NOTE);
 					// off beat
 					addNoteMessage(nextChordChannel, noteIndex, 0, (beatOfChangingChord*TICKS_PER_QUARTER_NOTE)+(TICKS_PER_QUARTER_NOTE/2));
 				}
@@ -1253,7 +1253,7 @@ int main(int argc, char** argv)
 	if (errorStatus == 0)
 	{
 		cout << endl;
-		cout << "Output file '" << outputFilename << "' successfully written." << endl;
+		cout << "Output file '" << outputFilename << "' successfully created." << endl;
 		cout << endl;
 	}
 

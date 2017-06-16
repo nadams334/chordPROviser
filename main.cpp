@@ -396,9 +396,10 @@ void setInputFileType(string filename)
 	{
 		inputFileType = Other;
 		stringstream ss;
-		ss << "Unrecognized input file type for input file: " << filename;
+		ss << "ERROR: Unrecognized input file type for input file: " << filename;
 		cerr << ss.str() << endl;
 		errorStatus = 1;
+		exit(errorStatus);
 	}
 }
 
@@ -410,10 +411,10 @@ bool setIOFile(int argNumber, IOtype ioType)
 	if (argNumber >= getArgCount())
 	{
 		stringstream ss;
-		ss << "Please supply an " << getTypeName(ioType) << " filename after the " << optionName << " option.";
+		ss << "ERROR: Please supply an " << getTypeName(ioType) << " filename after the " << optionName << " option.";
 		cerr << ss.str() << endl;
 		errorStatus = 1;
-		return false;
+		exit(errorStatus);
 	}
 	
 	switch (ioType)
@@ -429,24 +430,22 @@ bool setIOFile(int argNumber, IOtype ioType)
 			break;
 		default:
 			stringstream ss;
-			ss << "Unrecoginized IO type: " << ioType;
+			ss << "INTERNAL ERROR: Unrecoginized IO type: " << ioType;
 			cerr << ss.str() << endl;
 			errorStatus = -1;
-			return false;
+			exit(errorStatus);
 			break;
 	}
-
-	return true;
 }
 
-bool setInputFile(int argNumber)
+void setInputFile(int argNumber)
 {
-	return setIOFile(argNumber, Input);
+	setIOFile(argNumber, Input);
 }
 
-bool setOutputFile(int argNumber)
+void setOutputFile(int argNumber)
 {
-	return setIOFile(argNumber, Output);
+	setIOFile(argNumber, Output);
 }
 
 bool processOption(int argNumber)
@@ -482,8 +481,10 @@ bool processOption(int argNumber)
 	else
 	{
 		stringstream ss;
-		ss << "Unrecoginized command line argument #" << argNumber << ": " << arg;
+		ss << "ERROR: Unrecoginized command line argument #" << argNumber << ": " << arg;
 		cerr << ss.str() << endl;
+		errorStatus = 1;
+		exit(errorStatus);
 	}
 	
 	return false;
@@ -651,7 +652,7 @@ int getNoteIndex(string note)
 	else
 	{
 		stringstream ss;
-		ss << "Unrecoginized note: '" << note << "'";
+		ss << "WARNING: Unrecoginized note: '" << note << "'";
 		cerr << ss.str() << endl;
 		errorStatus = 3;
 		return -1;
@@ -679,8 +680,10 @@ string transposeChord(string chordType, string root, string bass)
 		
 	if (chordNoteString.size() == 0)
 	{
-		cerr << "Unrecogonized chord type: " << chordType << endl;
+		cerr << "ERROR: Unrecogonized chord type: " << chordType << endl;
 		chordNoteString = EMPTY_NOTE_STRING;
+		errorStatus = 1;
+		exit(errorStatus);
 	}
 	
 	if (chordNoteString.compare(EMPTY_NOTE_STRING) == 0) 

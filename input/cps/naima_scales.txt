@@ -1,0 +1,21 @@
+
+Session: naima.cps
+
+Folder: C:\Users\Nathan\Documents\chord_pulse\
+
+Style: Jazz Ballad
+
+Tempo: 60 BPM
+
+--------------------------------------------------
+
+Chords:
+
+| Bbm9/Eb_'dorian . . . | Ebm9_'dorian . . . | A+M7/Eb_'lydian+ . G+M7/Eb_'lydian+ . | AbM7/Eb_'lydian . . . |
+
+| Bbm9/Eb_'dorian . . . | Ebm9_'dorian . . . | A+M7/Eb_'lydian+ . G+M7/Eb_'lydian+ . | AbM7/Eb_'lydian . . . |
+
+| BM7/Bb_'lydian . . . | Bb6b9/G_'harmonic-major . . . | BM7/Bb_'lydian . . . | Bb6b9/G_'harmonic-major . . . |
+
+| D+M7/Bb_'lydian+ . . . | BM7/Bb_'lydian . . . | AbM9_'lydian . . . | EM7#11_'lydian-dominant . . . |
+

@@ -767,6 +767,7 @@ void separateNotesOfChordChange(int indexOfFirstChord, int indexOfSecondChord, b
 			notesByChannel[BASS_NOTE_CHANNEL][indexOfBassNote] = firstChord[indexOfBassNote];
 			notesByChannel[ODD_CHORD_CHANNEL][indexOfBassNote] = '0';
 			notesByChannel[EVEN_CHORD_CHANNEL][indexOfBassNote] = '0';
+			notesByChannel[MIXED_CHORD_CHANNEL][indexOfBassNote] = '0';
 		}
 		
 		// fill in all bars of the first chord
@@ -841,6 +842,7 @@ void separateNoteProgressionByChannel()
 					}
 					
 					separateNotesOfChordChange(indexOfCurrentChord, indexOfNextChord, isOddToEvenChordChange);
+					break;
 				}
 				else
 				{
@@ -865,6 +867,7 @@ void separateNoteProgressionByChannel()
 							noteProgressionByChannel[BASS_NOTE_CHANNEL][i][indexOfBassNote] = noteProgression[i][indexOfBassNote];
 							noteProgressionByChannel[ODD_CHORD_CHANNEL][i][indexOfBassNote] = '0';
 							noteProgressionByChannel[EVEN_CHORD_CHANNEL][i][indexOfBassNote] = '0';
+							noteProgressionByChannel[MIXED_CHORD_CHANNEL][i][indexOfBassNote] = '0';
 						}
 					}
 				}

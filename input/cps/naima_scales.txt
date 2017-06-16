@@ -17,5 +17,5 @@ Chords:
 
 | BM7/Bb_'lydian . . . | Bb6b9/G_'harmonic-major . . . | BM7/Bb_'lydian . . . | Bb6b9/G_'harmonic-major . . . |
 
-| D+M7/Bb_'lydian+ . . . | BM7/Bb_'lydian . . . | AbM9_'lydian . . . | EM7#11_'lydian-dominant . . . |
+| D+M7/Bb_'lydian+ . . . | BM7/Bb_'lydian . . . | AbM9_'lydian . . . | EM7#11_'lydian . . . |
 

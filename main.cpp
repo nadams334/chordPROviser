@@ -497,7 +497,7 @@ void loadChordMaps(string filename)
 	{
 		string line = lines[i];
 		if (line.size() <= 0)
-			return; // finished parsing
+			continue;
 			
 		string chordType = "";
 		string noteString = "";

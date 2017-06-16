@@ -11,4 +11,4 @@ Tempo: 100 BPM
 
 Chords:
 
-| Bbm6 |
+| G |

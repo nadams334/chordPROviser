@@ -1,0 +1,21 @@
+
+Session: naima.cps
+
+Folder: C:\Users\Nathan\Documents\chord_pulse\
+
+Style: Jazz Ballad
+
+Tempo: 60 BPM
+
+--------------------------------------------------
+
+Chords:
+
+| Bbm9/Eb . . . | Ebm9 . . . | A+M7/Eb . G+M7/Eb . | AbM7/Eb . . . |
+
+| Bbm9/Eb . . . | Ebm9 . . . | A+M7/Eb . G+M7/Eb . | AbM7/Eb . . . |
+
+| BM7/Bb . . . | Bb6b9/G . . . | BM7/Bb . . . | Bb6b9/G . . . |
+
+| D+M7/Bb . . . | BM7/Bb . . . | AbM9 . . . | EM7#11 . . . |
+

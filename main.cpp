@@ -31,15 +31,17 @@ vector<string> chordProgression;
 vector<string> scaleProgression;
 vector<string> noteProgression;
 
-const int startingOctave = 3;
-const int endingOctave = 8;
-const int numChannels = 4;
-const int ODD_CHORD_CHANNEL = 0;
-const int EVEN_CHORD_CHANNEL = 1;
-const int MIXED_CHORD_CHANNEL = 2;
-const int BASS_NOTE_CHANNEL = 3;
+const int UPDATE_MESSAGE_CODE = 30;
+const int STARTING_OCTAVE = 3;
+const int ENDING_OCTAVE = 8;
+const int NUM_CHANNELS = 4;
+const int ODD_CHORD_CHANNEL = 1 - 1;
+const int EVEN_CHORD_CHANNEL = 2 - 1;
+const int MIXED_CHORD_CHANNEL = 3 - 1;
+const int BASS_NOTE_CHANNEL = 4 - 1;
+const int STARTING_CHANNEL = 11 - 1;
 
-vector<string> noteProgressionByChannel[numChannels];
+vector<string> noteProgressionByChannel[NUM_CHANNELS];
 vector<int> chordChanges; // a list of every beat (zero-based) where a chord changes occurs
 
 const int TICKS_PER_QUARTER_NOTE = 384;
@@ -732,8 +734,8 @@ void separateNotesOfChordChange(int indexOfFirstChord, int indexOfSecondChord, b
 		string firstChord = noteProgression[indexOfFirstChord];
 		string secondChord = noteProgression[indexOfSecondChord];
 		
-		string notesByChannel[numChannels];
-		for (int i = 0; i < numChannels; i++)
+		string notesByChannel[NUM_CHANNELS];
+		for (int i = 0; i < NUM_CHANNELS; i++)
 		{
 			notesByChannel[i] = EMPTY_NOTE_STRING;
 		}
@@ -773,7 +775,7 @@ void separateNotesOfChordChange(int indexOfFirstChord, int indexOfSecondChord, b
 		// fill in all bars of the first chord
 		for (int beat = indexOfFirstChord; beat != indexOfSecondChord && beat < noteProgression.size(); beat++)
 		{
-			for (int channel = 0; channel < numChannels; channel++)
+			for (int channel = 0; channel < NUM_CHANNELS; channel++)
 			{
 				noteProgressionByChannel[channel][beat] = notesByChannel[channel];
 			}
@@ -789,7 +791,7 @@ void separateNoteProgressionByChannel()
 	// 201021020102 -> [000020000102] [] [201001020000]
 	
 	// initialize noteProgressionByChannel
-	for (int channel = 0; channel < numChannels; channel++)
+	for (int channel = 0; channel < NUM_CHANNELS; channel++)
 	{
 		for (int beat = 0; beat < noteProgression.size(); beat++)
 			noteProgressionByChannel[channel].push_back(EMPTY_NOTE_STRING);
@@ -917,13 +919,13 @@ void setTempo(int bpm)
 		cout << endl;
 	}
 	
-	for (int channel = 0; channel < numChannels; channel++)
+	for (int channel = 0; channel < NUM_CHANNELS; channel++)
 	{
 		midiOutputFile.addEvent(channel, 0, setTempoMessage); // add tempo change at start of each channel
 	}
 	*/
 	
-	for (int channel = 0; channel < numChannels; channel++)
+	for (int channel = 0; channel < NUM_CHANNELS; channel++)
 	{
 		midiOutputFile.addTempo(channel, 0, bpm);
 	}
@@ -936,7 +938,7 @@ void addNoteMessage(int channel, int noteIndex, int noteBrightness, int ticks)
 	unsigned char statusByte = 0x90; // note on message
 	if (noteBrightness == 0) // note off message
 		statusByte = 0x80;
-	statusByte += channel;
+	statusByte += channel + STARTING_CHANNEL;
 	
 	unsigned char velocityByte = 0x00;
 	if (noteBrightness == 1)
@@ -945,7 +947,7 @@ void addNoteMessage(int channel, int noteIndex, int noteBrightness, int ticks)
 		velocityByte = brightNoteVelocity;
 		
 	unsigned char pitchByte;
-	for (int octave = startingOctave; octave < endingOctave; octave++)
+	for (int octave = STARTING_OCTAVE; octave < ENDING_OCTAVE || octave == ENDING_OCTAVE && noteIndex == 0; octave++)
 	{
 		pitchByte = (12*octave)+noteIndex;
 		
@@ -981,7 +983,7 @@ void clearAllNotesForChannel(int channel, int ticks)
 
 void clearAllNotes(int ticks)
 {
-	for (int channel = 0; channel < numChannels; channel++)
+	for (int channel = 0; channel < NUM_CHANNELS; channel++)
 	{
 		clearAllNotesForChannel(channel, ticks);
 	}
@@ -1019,10 +1021,39 @@ void addEndOfTrackMessage(int channel, int ticks)
 
 void endAllTracks(int ticks)
 {
-	for (int channel = 0; channel < numChannels; channel++)
+	for (int channel = 0; channel < NUM_CHANNELS; channel++)
 	{
 		if (!indicateBass && channel == BASS_NOTE_CHANNEL) continue;
 		addEndOfTrackMessage(channel, ticks);
+	}
+}
+
+void addUpdateMessage(int ticks)
+{
+	int channel = ODD_CHORD_CHANNEL;
+	
+	unsigned char statusByte = 0xB0 + channel + STARTING_CHANNEL; // control change message
+	unsigned char dataByte = UPDATE_MESSAGE_CODE;
+	unsigned char valueByte = 0X7F; // max on signal
+	
+	vector<unsigned char> updateMessage;
+	updateMessage.push_back(statusByte);
+	updateMessage.push_back(dataByte);
+	updateMessage.push_back(valueByte);
+		
+	midiOutputFile.addEvent(channel, ticks, updateMessage);
+		
+	if (debugMode)
+	{
+		cout << "Created the following update message with the following parameters:" << endl;
+		cout << "Ticks: " << ticks << endl;
+		cout << "Message: ";
+		for (int i = 0; i < updateMessage.size(); i++)
+		{
+			printf("0x%X ", updateMessage[i]);
+		}
+		cout << endl;
+		cout << endl;
 	}
 }
 
@@ -1037,7 +1068,7 @@ void createMidiFile()
 	// initialize midi file
 	
 	midiOutputFile.absoluteTicks();
-	midiOutputFile.addTrack(numChannels-1); // 1 channel already present
+	midiOutputFile.addTrack(NUM_CHANNELS-1); // 1 channel already present
 	midiOutputFile.setTicksPerQuarterNote(TICKS_PER_QUARTER_NOTE);
 	
 	setTempo(beatsPerMinute);
@@ -1045,7 +1076,7 @@ void createMidiFile()
 	
 	// add first chord
 
-	for (int channel = 0; channel < numChannels; channel++)
+	for (int channel = 0; channel < NUM_CHANNELS; channel++)
 	{
 		if (channel == BASS_NOTE_CHANNEL && !indicateBass) continue;
 
@@ -1055,21 +1086,28 @@ void createMidiFile()
 			if (noteBrightness > 0)
 			{
 				int tickOffset = noteIndex/2;
+				tickOffset = 0;
 				addNoteMessage(channel, noteIndex, noteBrightness, 0+tickOffset);
 			}
 		}
 	}
+	int tickOffset = EMPTY_NOTE_STRING.size()/2 + 1;
+	tickOffset = 4;
+	addUpdateMessage(0 + tickOffset);
 		
 	
 	// add all chord changes
 
 	for (int chordChange = 0; chordChange < chordChanges.size(); chordChange++)
 	{
-		for (int channel = 0; channel < numChannels; channel++)
+		int beatOfChordChange = chordChanges[chordChange];
+		
+		int beatOfChangingChord = beatOfChordChange - 1;
+		if (beatOfChangingChord < 0) beatOfChangingChord = numBeats-1; // last beat in song
+		
+		for (int channel = 0; channel < NUM_CHANNELS; channel++)
 		{
 			if (channel == BASS_NOTE_CHANNEL && !indicateBass) continue;
-			
-			int beatOfChordChange = chordChanges[chordChange];
 			
 			if (beatOfChordChange != 0) // don't need to re-add first chord, only need to add blinking lead-in
 			{
@@ -1077,7 +1115,9 @@ void createMidiFile()
 				for (int noteIndex = 0; noteIndex < EMPTY_NOTE_STRING.size(); noteIndex++)
 				{
 					int noteBrightness = noteProgressionByChannel[channel][beatOfChordChange][noteIndex]-'0';
-					int tickOffset = (noteIndex+1) - EMPTY_NOTE_STRING.size()/2;
+					tickOffset = (noteIndex+1) - EMPTY_NOTE_STRING.size()/2;
+					tickOffset = 0 - (noteIndex+1);
+					//tickOffset = 0;
 					addNoteMessage(channel, noteIndex, noteBrightness, (beatOfChordChange*TICKS_PER_QUARTER_NOTE)+tickOffset);
 				}
 			}
@@ -1099,11 +1139,11 @@ void createMidiFile()
 					nextChordChannel = EVEN_CHORD_CHANNEL;
 				}
 				
-				int beatOfChangingChord = beatOfChordChange - 1;
-				if (beatOfChangingChord < 0) beatOfChangingChord = numBeats-1; // last beat in song
 				if (noteProgression[beatOfChordChange][noteIndex] > '0' && noteProgression[beatOfChangingChord][noteIndex] == '0')
 				{
-					int tickOffset = (noteIndex+1) - EMPTY_NOTE_STRING.size()/2;
+					tickOffset = (noteIndex+1) - EMPTY_NOTE_STRING.size()/2;
+					tickOffset = 0 - (noteIndex+1);
+					//tickOffset = 0;
 					// on beat
 					addNoteMessage(nextChordChannel, noteIndex, noteProgression[beatOfChordChange][noteIndex]-'0', (beatOfChangingChord*TICKS_PER_QUARTER_NOTE)+tickOffset);
 					// off beat
@@ -1111,23 +1151,36 @@ void createMidiFile()
 				}
 			}
 		}	
+		// update after writing each chord
+		tickOffset = (EMPTY_NOTE_STRING.size()/2)+2;
+		tickOffset = 4;
+		addUpdateMessage((beatOfChordChange*TICKS_PER_QUARTER_NOTE)+tickOffset);
+		addUpdateMessage((beatOfChangingChord*TICKS_PER_QUARTER_NOTE)+tickOffset); // transistion on beat
+		addUpdateMessage((beatOfChangingChord*TICKS_PER_QUARTER_NOTE)+(TICKS_PER_QUARTER_NOTE/2)+tickOffset); // transistion off beat
+		
 	}
 
 	
 	// clear all notes after last beat in song
 	
-	for (int channel = 0; channel < numChannels; channel++)
+	for (int channel = 0; channel < NUM_CHANNELS; channel++)
 	{
 		for (int noteIndex = 0; noteIndex < EMPTY_NOTE_STRING.size(); noteIndex++)
 		{
 			int noteBrightness = noteProgressionByChannel[channel][numBeats-1][noteIndex] - '0';
 			if (noteBrightness > 0)
 			{
-				int tickOffset = (noteIndex+1) - EMPTY_NOTE_STRING.size()/2;
+				tickOffset = (noteIndex+1) - EMPTY_NOTE_STRING.size()/2;
+				tickOffset = 0 - (noteIndex+1);
+				//tickOffset = 0;
 				addNoteMessage(channel, noteIndex, 0, (numBeats*TICKS_PER_QUARTER_NOTE)+tickOffset);
 			}
 		}
 	}
+	
+	tickOffset = (EMPTY_NOTE_STRING.size()/2) + 2;
+	tickOffset = 4;
+	addUpdateMessage((numBeats*TICKS_PER_QUARTER_NOTE)+tickOffset);
 	
 	
 	// finalize and write output file
@@ -1171,9 +1224,14 @@ void initialize(int argc, char** argv)
 	
 	if (outputFilename.size() == 0)
 	{
-		cerr << "Please specify an output file. (-o)" << endl;
-		errorStatus = 1;
-		exit(errorStatus);
+		int indexOfLastSlash = -1;
+		int indexOfLastPeriod = -1;
+		for (int i = 0; i < inputFilename.size(); i++)
+		{
+			if (inputFilename[i] == '/') indexOfLastSlash = i;
+			if (inputFilename[i] == '.') indexOfLastPeriod = i;
+		}
+		outputFilename = inputFilename.substr(indexOfLastSlash+1,indexOfLastPeriod-indexOfLastSlash-1) + ".mid";
 	}
 
 	loadConfig();
@@ -1237,7 +1295,7 @@ int main(int argc, char** argv)
 	if (debugMode)
 	{
 		cout << "Note Progression by Channel: " << endl;
-		for (int i = 0; i < numChannels; i++)
+		for (int i = 0; i < NUM_CHANNELS; i++)
 		{
 			for (int j = 0; j < noteProgressionByChannel[i].size(); j++)
 			{

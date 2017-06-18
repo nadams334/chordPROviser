@@ -15,7 +15,7 @@ Chords:
 
 | Bbm9/Eb_'dorian . . . | Ebm9_'dorian . . . | A+M7/Eb_'lydian+ . G+M7/Eb_'lydian+ . | AbM7/Eb_'lydian . . . |
 
-| BM7/Bb_'lydian . . . | Bb6b9/G_'harmonic-major . . . | BM7/Bb_'lydian . . . | Bb6b9/G_'harmonic-major . . . |
+| BM7/Bb_'lydian . . . | Bb6b9/G_'mixolydian-b9 . . . | BM7/Bb_'lydian . . . | Bb6b9/G_'mixolydian-b9 . . . |
 
 | D+M7/Bb_'lydian+ . . . | BM7/Bb_'lydian . . . | AbM9_'lydian . . . | EM7#11_'lydian . . . |
 

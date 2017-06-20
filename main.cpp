@@ -31,7 +31,8 @@ vector<string> chordProgression;
 vector<string> scaleProgression;
 vector<string> noteProgression;
 
-const int UPDATE_MESSAGE_CODE = 30;
+const int UPDATE_CHANNEL_MESSAGE_CODE = 30;
+const int UPDATE_ALL_MESSAGE_CODE = 31;
 const int STARTING_OCTAVE = 3;
 const int ENDING_OCTAVE = 8;
 const int NUM_CHANNELS = 4;
@@ -1030,10 +1031,13 @@ void endAllTracks(int ticks)
 
 void addUpdateMessage(int ticks)
 {
-	int channel = ODD_CHORD_CHANNEL;
+	int channel = EVEN_CHORD_CHANNEL;
+	
+	if (indicateBass)
+		int channel = BASS_NOTE_CHANNEL;
 	
 	unsigned char statusByte = 0xB0 + channel + STARTING_CHANNEL; // control change message
-	unsigned char dataByte = UPDATE_MESSAGE_CODE;
+	unsigned char dataByte = UPDATE_ALL_MESSAGE_CODE;
 	unsigned char valueByte = 0X7F; // max on signal
 	
 	vector<unsigned char> updateMessage;
@@ -1047,6 +1051,34 @@ void addUpdateMessage(int ticks)
 	{
 		cout << "Created the following update message with the following parameters:" << endl;
 		cout << "Ticks: " << ticks << endl;
+		cout << "Message: ";
+		for (int i = 0; i < updateMessage.size(); i++)
+		{
+			printf("0x%X ", updateMessage[i]);
+		}
+		cout << endl;
+		cout << endl;
+	}
+}
+
+void addUpdateMessage(int ticks, int channel)
+{
+	unsigned char statusByte = 0xB0 + channel + STARTING_CHANNEL; // control change message
+	unsigned char dataByte = UPDATE_CHANNEL_MESSAGE_CODE;
+	unsigned char valueByte = 0X7F; // max on signal
+	
+	vector<unsigned char> updateMessage;
+	updateMessage.push_back(statusByte);
+	updateMessage.push_back(dataByte);
+	updateMessage.push_back(valueByte);
+		
+	midiOutputFile.addEvent(channel, ticks, updateMessage);
+		
+	if (debugMode)
+	{
+		cout << "Created the following update message with the following parameters:" << endl;
+		cout << "Ticks: " << ticks << endl;
+		cout << "Channel: " << channel << endl;
 		cout << "Message: ";
 		for (int i = 0; i < updateMessage.size(); i++)
 		{
@@ -1085,14 +1117,13 @@ void createMidiFile()
 			int noteBrightness = noteProgressionByChannel[channel][0][noteIndex]-'0';
 			if (noteBrightness > 0)
 			{
-				int tickOffset = noteIndex/2;
+				int tickOffset = noteIndex+1;
 				tickOffset = 0;
 				addNoteMessage(channel, noteIndex, noteBrightness, 0+tickOffset);
 			}
 		}
 	}
-	int tickOffset = EMPTY_NOTE_STRING.size()/2 + 1;
-	tickOffset = 4;
+	int tickOffset = 2;
 	addUpdateMessage(0 + tickOffset);
 		
 	
@@ -1115,9 +1146,9 @@ void createMidiFile()
 				for (int noteIndex = 0; noteIndex < EMPTY_NOTE_STRING.size(); noteIndex++)
 				{
 					int noteBrightness = noteProgressionByChannel[channel][beatOfChordChange][noteIndex]-'0';
-					tickOffset = (noteIndex+1) - EMPTY_NOTE_STRING.size()/2;
-					tickOffset = 0 - (noteIndex+1);
-					//tickOffset = 0;
+					tickOffset = 0 - (channel * EMPTY_NOTE_STRING.size() + (noteIndex+1));
+					tickOffset = -2;
+					
 					addNoteMessage(channel, noteIndex, noteBrightness, (beatOfChordChange*TICKS_PER_QUARTER_NOTE)+tickOffset);
 				}
 			}
@@ -1141,9 +1172,9 @@ void createMidiFile()
 				
 				if (noteProgression[beatOfChordChange][noteIndex] > '0' && noteProgression[beatOfChangingChord][noteIndex] == '0')
 				{
-					tickOffset = (noteIndex+1) - EMPTY_NOTE_STRING.size()/2;
-					tickOffset = 0 - (noteIndex+1);
-					//tickOffset = 0;
+					tickOffset = 0 - (channel * EMPTY_NOTE_STRING.size() + (noteIndex+1));
+					tickOffset = -2;
+					
 					// on beat
 					addNoteMessage(nextChordChannel, noteIndex, noteProgression[beatOfChordChange][noteIndex]-'0', (beatOfChangingChord*TICKS_PER_QUARTER_NOTE)+tickOffset);
 					// off beat
@@ -1152,8 +1183,7 @@ void createMidiFile()
 			}
 		}	
 		// update after writing each chord
-		tickOffset = (EMPTY_NOTE_STRING.size()/2)+2;
-		tickOffset = 4;
+		tickOffset = 2;
 		addUpdateMessage((beatOfChordChange*TICKS_PER_QUARTER_NOTE)+tickOffset);
 		addUpdateMessage((beatOfChangingChord*TICKS_PER_QUARTER_NOTE)+tickOffset); // transistion on beat
 		addUpdateMessage((beatOfChangingChord*TICKS_PER_QUARTER_NOTE)+(TICKS_PER_QUARTER_NOTE/2)+tickOffset); // transistion off beat
@@ -1170,16 +1200,17 @@ void createMidiFile()
 			int noteBrightness = noteProgressionByChannel[channel][numBeats-1][noteIndex] - '0';
 			if (noteBrightness > 0)
 			{
-				tickOffset = (noteIndex+1) - EMPTY_NOTE_STRING.size()/2;
-				tickOffset = 0 - (noteIndex+1);
-				//tickOffset = 0;
+				tickOffset = 0 - (channel * EMPTY_NOTE_STRING.size() + (noteIndex+1));
+				tickOffset = -2;
 				addNoteMessage(channel, noteIndex, 0, (numBeats*TICKS_PER_QUARTER_NOTE)+tickOffset);
 			}
 		}
+		
+		//tickOffset = channel;
+		//addUpdateMessage((numBeats*TICKS_PER_QUARTER_NOTE)+tickOffset, channel);
 	}
 	
-	tickOffset = (EMPTY_NOTE_STRING.size()/2) + 2;
-	tickOffset = 4;
+	tickOffset = 0;
 	addUpdateMessage((numBeats*TICKS_PER_QUARTER_NOTE)+tickOffset);
 	
 	

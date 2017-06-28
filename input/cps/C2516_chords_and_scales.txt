@@ -1,0 +1,15 @@
+
+Session: [NEW]
+
+Style: Swing
+
+Tempo: 100 BPM
+
+--------------------------------------------------
+
+Chords:
+
+| Dm7_'dorian . . . | . . . . | G7_'mixolydian . . . | . . . . |
+
+| CM7_'ionian . . . | . . . . | Am7_'aeolian . . . | . . . . |
+

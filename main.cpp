@@ -1034,7 +1034,7 @@ void addUpdateMessage(int ticks)
 	int channel = EVEN_CHORD_CHANNEL;
 	
 	if (indicateBass)
-		int channel = BASS_NOTE_CHANNEL;
+		channel = BASS_NOTE_CHANNEL;
 	
 	unsigned char statusByte = 0xB0 + channel + STARTING_CHANNEL; // control change message
 	unsigned char dataByte = UPDATE_ALL_MESSAGE_CODE;
@@ -1118,12 +1118,12 @@ void createMidiFile()
 			if (noteBrightness > 0)
 			{
 				int tickOffset = noteIndex+1;
-				tickOffset = 0;
+				tickOffset = 2;
 				addNoteMessage(channel, noteIndex, noteBrightness, 0+tickOffset);
 			}
 		}
 	}
-	int tickOffset = 2;
+	int tickOffset = 8;
 	addUpdateMessage(0 + tickOffset);
 		
 	

@@ -1,0 +1,14 @@
+
+Session: all_at_once.cps
+
+Folder: C:\Users\Nathan\Documents\chord_pulse\
+
+Style: Swing - 2 Feel
+
+Tempo: 60 BPM
+
+--------------------------------------------------
+
+Chords:
+
+| F7sus . . . |

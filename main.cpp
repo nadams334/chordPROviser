@@ -1135,28 +1135,26 @@ void createMidiFile()
 		
 		int beatOfChangingChord = beatOfChordChange - 1;
 		if (beatOfChangingChord < 0) beatOfChangingChord = numBeats-1; // last beat in song
-		
-		for (int channel = 0; channel < NUM_CHANNELS; channel++)
+
+		if (beatOfChordChange != 0) // add all chord change notes except for chord change to beat 0 (first chord already added)
 		{
-			if (channel == BASS_NOTE_CHANNEL && !indicateBass) continue;
-			
-			if (beatOfChordChange != 0) // don't need to re-add first chord, only need to add blinking lead-in
+			for (int channel = 0; channel < NUM_CHANNELS; channel++)
 			{
+				if (channel == BASS_NOTE_CHANNEL && !indicateBass) continue;
+
 				// add chord notes
 				for (int noteIndex = 0; noteIndex < EMPTY_NOTE_STRING.size(); noteIndex++)
 				{
 					int noteBrightness = noteProgressionByChannel[channel][beatOfChordChange][noteIndex]-'0';
-					tickOffset = 0 - (channel * EMPTY_NOTE_STRING.size() + (noteIndex+1));
 					tickOffset = -2;
 					
 					addNoteMessage(channel, noteIndex, noteBrightness, (beatOfChordChange*TICKS_PER_QUARTER_NOTE)+tickOffset);
 				}
 			}
-			else if (!loopMode)
-			{
-				return; // only show chord change lead-in back to beat 0 if loop mode is enabled
-			}
-			
+		}
+
+		if (beatOfChordChange != 0 || (beatOfChordChange == 0 && loopMode))
+		{
 			// add chord lead-in before chord change
 			for (int noteIndex = 0; noteIndex < EMPTY_NOTE_STRING.size(); noteIndex++)
 			{
@@ -1170,18 +1168,34 @@ void createMidiFile()
 					nextChordChannel = EVEN_CHORD_CHANNEL;
 				}
 				
-				if (noteProgression[beatOfChordChange][noteIndex] > '0' && noteProgression[beatOfChangingChord][noteIndex] == '0')
+				if (noteProgression[beatOfChordChange][noteIndex] > '0')
 				{
-					tickOffset = 0 - (channel * EMPTY_NOTE_STRING.size() + (noteIndex+1));
 					tickOffset = -2;
 					
+					int channel;
+
+					if (noteProgression[beatOfChangingChord][noteIndex] == '0')
+					{ // chord change adds new note
+						channel = nextChordChannel;
+					}
+					else if (noteProgression[beatOfChangingChord][noteIndex] != noteProgression[beatOfChordChange][noteIndex])
+					{ // chord change alters brightness of currently active note
+						channel = MIXED_CHORD_CHANNEL;
+						continue; // disable this feature for now
+					}
+					else
+					{
+						continue;
+					}
+
 					// on beat
-					addNoteMessage(nextChordChannel, noteIndex, noteProgression[beatOfChordChange][noteIndex]-'0', (beatOfChangingChord*TICKS_PER_QUARTER_NOTE)+tickOffset);
+					addNoteMessage(channel, noteIndex, noteProgression[beatOfChordChange][noteIndex]-'0', (beatOfChangingChord*TICKS_PER_QUARTER_NOTE)+tickOffset);
 					// off beat
-					addNoteMessage(nextChordChannel, noteIndex, 0, (beatOfChangingChord*TICKS_PER_QUARTER_NOTE)+(TICKS_PER_QUARTER_NOTE/2)+tickOffset);
+					addNoteMessage(channel, noteIndex, noteProgression[beatOfChangingChord][noteIndex]-'0', (beatOfChangingChord*TICKS_PER_QUARTER_NOTE)+(TICKS_PER_QUARTER_NOTE/2)+tickOffset);
 				}
 			}
-		}	
+		}
+	
 		// update after writing each chord
 		tickOffset = 2;
 		addUpdateMessage((beatOfChordChange*TICKS_PER_QUARTER_NOTE)+tickOffset);

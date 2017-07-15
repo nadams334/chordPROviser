@@ -78,6 +78,7 @@ bool loopMode;
 bool brightMode;
 bool indicateBass;
 bool debugMode;
+bool ignoreScales;
 
 const string INPUT_FILE_OPTION = "-i";
 const string OUTPUT_FILE_OPTION = "-o";
@@ -85,9 +86,15 @@ const string LOOP_MODE_OPTION = "-l";
 const string BRIGHT_MODE_OPTION = "-b";
 const string INDICATE_BASS_OPTION = "-r";
 const string DEBUG_OPTION = "-d";
+const string CHORDS_ONLY_OPTION = "-c";
 
 const string EMPTY_NOTE_STRING = "000000000000";
 
+string boolToText(bool b)
+{
+	if (b) return "Enabled";
+	else return "Disabled";
+}
 
 bool endsWith(const string& a, const string& b) 
 {
@@ -193,19 +200,13 @@ string getArg(int index)
 	return commandLineArgs.at(index);
 }
 
-void debugOptions()
+void displaySettings()
 {
-	cout << endl << "Args(" << getArgCount() << "): " << endl;
-
-	for (int i = 0; i < getArgCount(); i++)
-	{
-		cout << getArg(i) << endl;
-	}
-
-	cout << endl << "Options: " << endl;
-	cout << "Loop mode enabled (default 1): " << loopMode << endl;
-	cout << "Bright mode (default 0): " << brightMode << endl;
-	cout << "Indicate bass (default 1): " << indicateBass << endl;
+	cout << endl << "Settings: " << endl;
+	cout << "Indicate bass (enabled by default): " << boolToText(indicateBass) << endl;
+	cout << "Loop mode (enabled by default): " << boolToText(loopMode) << endl;
+	cout << "Bright mode (disabled by default): " << boolToText(brightMode) << endl;
+	cout << "Chords only (disabled by default): " << boolToText(ignoreScales) << endl;
 	
 	cout << endl;
 }
@@ -481,6 +482,10 @@ bool processOption(int argNumber)
 	{
 		toggle(indicateBass);
 	}
+	else if (arg.compare(CHORDS_ONLY_OPTION) == 0)
+	{
+		toggle(ignoreScales);
+	}
 	else
 	{
 		stringstream ss;
@@ -726,6 +731,10 @@ void generateNoteProgression()
 	{
 		string notesInChord = generateChord(i);
 		string notesInScale = generateScale(i);
+		
+		if (ignoreScales)
+			notesInScale = EMPTY_NOTE_STRING;
+
 		noteProgression.push_back(combineChords(notesInChord, notesInScale));
 	}
 }
@@ -1178,10 +1187,17 @@ void createMidiFile()
 					{ // chord change adds new note
 						channel = nextChordChannel;
 					}
-					else if (noteProgression[beatOfChangingChord][noteIndex] != noteProgression[beatOfChordChange][noteIndex])
-					{ // chord change alters brightness of currently active note
-						channel = MIXED_CHORD_CHANNEL;
-						continue; // disable this feature for now
+					else if (noteProgression[beatOfChordChange][noteIndex] > noteProgression[beatOfChangingChord][noteIndex])
+					{ // chord change increases brightness of currently active note
+						// current note is the current root/bass note
+						if (indicateBass && noteProgressionByChannel[BASS_NOTE_CHANNEL][beatOfChangingChord][noteIndex] > '0')
+						{
+							channel =  BASS_NOTE_CHANNEL;
+						}
+						else
+						{
+							channel = MIXED_CHORD_CHANNEL;
+						}
 					}
 					else
 					{
@@ -1247,6 +1263,7 @@ void initialize(int argc, char** argv)
 	indicateBass = true;
 	loopMode = true;
 	debugMode = false;
+	ignoreScales = false;
 	
 	inputFilename = "";
 	outputFilename = "";
@@ -1296,11 +1313,11 @@ void initialize(int argc, char** argv)
 int main(int argc, char** argv) 
 {	
 	initialize(argc, argv);
+
+	displaySettings();
 	
 	if (debugMode)
 	{
-		debugOptions();
-		
 		cout << "Chord Types: " << endl;
 		for (map<string, string>::const_iterator it = chordMap.begin(); it != chordMap.end(); it++)
 		{
@@ -1360,7 +1377,7 @@ int main(int argc, char** argv)
 	if (errorStatus == 0)
 	{
 		cout << endl;
-		cout << "Output file '" << outputFilename << "' successfully created." << endl;
+		cout << "Output file '" << outputFilename << "' successfully written." << endl;
 		cout << endl;
 	}
 

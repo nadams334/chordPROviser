@@ -145,7 +145,7 @@ string getBass(string chordName)
 	
 	if (indexOfSlash != string::npos)
 	{
-		bass = chordName.substr(indexOfSlash+1);
+		bass = getRoot(chordName.substr(indexOfSlash+1));
 	}
 	else
 	{
@@ -814,7 +814,7 @@ void separateNoteProgressionByChannel()
 		// look ahead until we find next chord change (first chord that is different from the current)
 		
 		int indexOfNextChord;
-		for (indexOfNextChord = indexOfCurrentChord + 1; indexOfNextChord < noteProgression.size() && noteProgression[indexOfCurrentChord].compare(noteProgression[indexOfNextChord]) == 0; indexOfNextChord++);
+		for (indexOfNextChord = indexOfCurrentChord + 1; indexOfNextChord < noteProgression.size() && noteProgression[indexOfCurrentChord].compare(noteProgression[indexOfNextChord]) == 0 && (!indicateBass || getBass(chordProgression[indexOfCurrentChord]).compare(getBass(chordProgression[indexOfNextChord])) == 0); indexOfNextChord++);
 		
 		if (indexOfNextChord >= noteProgression.size()) // we're currently completing the last chord
 		{

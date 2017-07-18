@@ -1,0 +1,39 @@
+
+Session: along_came_betty.cps
+
+Folder: C:\Users\Nathan\Documents\chord_pulse\
+
+Style: Swing
+
+Tempo: 100 BPM
+
+--------------------------------------------------
+
+Chords:
+
+| Bbm_'melodic . . . | Bm7_'dorian . E7_'mixolydian . | Bbm_'melodic . . . | Bm7_'dorian . E7_'mixolydian . |
+
+| AM7_'lydian . . . | Ab7#5_'alt . . . | GM7_'lydian . . . | Gb13_'mixolydian . . . |
+
+
+
+| Gbm_'melodic . . . | Gm7_'dorian . C7_'mixolydian . | Gbm_'melodic . . . | Gm7_'dorian . C7_'mixolydian . |
+
+| FM7_'ionian . . . | A7b5_'alt . . . | Dm7_'melodic . . . | G7_'lydian-dominant . . . |
+
+
+
+| Cm9_'dorian . . . | F7b9_'mixolydian-b9 . . . | Am7b5_'locrian . D7b9_'mixolydian-b9 . | Gm7_'dorian . Gm7/F_'dorian . |
+
+| Em7b5_'locrian . . . | A7b9_'mixolydian-b9 . . . | Fm7_'dorian . . . | Bb7_'mixolydian . . . |
+
+
+
+| Bbm_'melodic . . . | Bm7_'dorian . E7_'mixolydian . | Bbm_'melodic . . . | Bm7_'dorian . E7_'mixolydian . |
+
+| Cm7b5_'locrian . . . | F7b9_'mixolydian-b9 . . . | Bbm7b5_'locrian . . . | Eb7#9_'dim-hw . . . |
+
+
+
+| AbM7_'ionian . . . | Bm7_'dorian . E7_'mixolydian . |
+

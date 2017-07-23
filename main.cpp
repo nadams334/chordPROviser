@@ -22,6 +22,7 @@ using namespace std;
 
 
 int errorStatus;
+bool unrecognizedChordTypes;
 
 // Song info
 int beatsPerMinute = 0;
@@ -688,10 +689,9 @@ string transposeChord(string chordType, string root, string bass)
 		
 	if (chordNoteString.size() == 0)
 	{
-		cerr << "ERROR: Unrecogonized chord type: " << chordType << endl;
+		cerr << "Unrecognized chord type: " << chordType << endl;
+		unrecognizedChordTypes = true;
 		chordNoteString = EMPTY_NOTE_STRING;
-		errorStatus = 1;
-		exit(errorStatus);
 	}
 	
 	if (chordNoteString.compare(EMPTY_NOTE_STRING) == 0) 
@@ -736,6 +736,12 @@ void generateNoteProgression()
 			notesInScale = EMPTY_NOTE_STRING;
 
 		noteProgression.push_back(combineChords(notesInChord, notesInScale));
+	}
+
+	if (unrecognizedChordTypes) 
+	{
+		cerr << endl << "ERROR:MIDI file could not be generated. Please update the chord list to include the missing chord types for this song." << endl;
+		exit(1);
 	}
 }
 

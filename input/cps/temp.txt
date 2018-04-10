@@ -1,13 +1,15 @@
 
 Session: [NEW]
 
-Style: Jazz Ballad
+Style: Swing
 
-Tempo: 65 BPM
+Tempo: 110 BPM
 
 --------------------------------------------------
 
 Chords:
 
-| DM_'lydian . . . | F#_'ionian . . . |
+
+
+| A6_'lydian . . . | . . B6_'mixolydian . |
 

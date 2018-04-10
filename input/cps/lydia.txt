@@ -11,5 +11,4 @@ Tempo: 60 BPM
 
 Chords:
 
-| Gm7b5_'melodic-minor-7 . . . | C7_'harmonic-major-3 . . . | FM7_'harmonic-minor-6 . . . | FM7_'harmonic-minor-6 . . . |
-| Gm7b5_'locrian-b4 . . . | C7_'phrygian-b4 . . . | FM7_'lydian-#9 . . . | FM7_'lydian-#9 . . . |
+| Gm7b5_'locrian-b4 . Gm7b5_'melodic-minor-7 . | C7_'phrygian-b4 . C7_'harmonic-major-3 . | FM7_'lydian-#9 . FM7_'harmonic-minor-6 . | . . . . |

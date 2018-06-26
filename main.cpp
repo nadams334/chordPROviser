@@ -1,6 +1,6 @@
 // chordPROviser
 // Author: Nathan Adams
-// 2016-2017
+// 2016-2018
 
 #include <string>
 #include <stdio.h>

@@ -67,10 +67,8 @@ const string CHORD_LIST_FILENAME = "config/chords.cfg";
 
 map<string, string> chordMap;
 
-const int dimnessFactor = 8;
-const int brightnessFactor = 10; // bright notes will be this factor brighter than dim notes (ie. 10 = 10x as bright)
-const int dimNoteVelocity = dimnessFactor - 1;
-const int brightNoteVelocity = (dimnessFactor * brightnessFactor) - 1;
+const int dimNoteVelocity = 8;
+const int brightNoteVelocity = 80;
 
 // Command line args
 vector<string> commandLineArgs;

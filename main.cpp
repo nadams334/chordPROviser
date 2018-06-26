@@ -204,8 +204,8 @@ string getArg(int index)
 void displaySettings()
 {
 	cout << endl << "Settings: " << endl;
-	cout << "Indicate bass (enabled by default): " << boolToText(indicateBass) << endl;
 	cout << "Loop mode (enabled by default): " << boolToText(loopMode) << endl;
+	cout << "Indicate bass (disabled by default): " << boolToText(indicateBass) << endl;
 	cout << "Bright mode (disabled by default): " << boolToText(brightMode) << endl;
 	cout << "Chords only (disabled by default): " << boolToText(ignoreScales) << endl;
 	
@@ -1266,7 +1266,7 @@ void initialize(int argc, char** argv)
 	// Initialize variables
 	errorStatus = 0;
 	brightMode = false;
-	indicateBass = true;
+	indicateBass = false;
 	loopMode = true;
 	debugMode = false;
 	ignoreScales = false;
@@ -1296,10 +1296,10 @@ void initialize(int argc, char** argv)
 		int indexOfLastPeriod = -1;
 		for (int i = 0; i < inputFilename.size(); i++)
 		{
-			if (inputFilename[i] == '/') indexOfLastSlash = i;
+			if (inputFilename[i] == '/' || inputFilename[i] == '\\') indexOfLastSlash = i;
 			if (inputFilename[i] == '.') indexOfLastPeriod = i;
 		}
-		outputFilename = inputFilename.substr(indexOfLastSlash+1,indexOfLastPeriod-indexOfLastSlash-1) + ".mid";
+		outputFilename = inputFilename.substr(indexOfLastSlash+1,indexOfLastPeriod-indexOfLastSlash-1) + "_CPV.mid";
 	}
 
 	loadConfig();

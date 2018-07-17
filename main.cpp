@@ -52,8 +52,9 @@ const int TICKS_PER_QUARTER_NOTE = 384;
 MidiFile midiOutputFile;
 
 enum IOtype { Input, Output };
-enum InputFileType { MMA, TXT, Other };
+enum InputFileType { MMA, TXT };
 
+string chordScaleMappingFilename;
 string inputFilename;
 string outputFilename;
 
@@ -62,11 +63,18 @@ InputFileType inputFileType;
 const string BINASC_DIRECTORY = "binasc/";
 
 // Config data
+const string DEFAULT_CHORD_SCALE_MAPPING_FILENAME = "config/chord-scale.cfg";
+
 const string CHORD_LIST_FILENAME = "config/chords.cfg";
 const string SCALE_LIST_FILENAME = "config/scales.cfg";
 
+map<string, vector<string>> chordScaleMap; // M7 : [ 'ionian , 'lydian , 'mixolydian , ... ]
+
 map<string, string> chordMap;
 map<string, string> scaleMap;
+
+map<string, string> reverseChordMap;
+map<string, string> reverseScaleMap;
 
 const int dimNoteVelocity = 8;
 const int brightNoteVelocity = 80;
@@ -79,6 +87,10 @@ bool brightMode;
 bool indicateBass;
 bool debugMode;
 bool ignoreScales;
+
+bool realtime;
+
+const string REALTIME_OPTION = "-t";
 
 const string INPUT_FILE_OPTION = "-i";
 const string OUTPUT_FILE_OPTION = "-o";
@@ -213,25 +225,13 @@ string getArg(int index)
 {
 	if (index < 0 || index >= getArgCount())
 	{
-		stringstream ss;
-		ss << "Attempting to access out-of-bounds command line argument #: " << index;
-		cerr << ss.str() << endl;
+		cerr << "Attempting to access out-of-bounds command line argument #: " << index << endl;
+		cerr << "Exiting..." << endl;
 		errorStatus = 2;
-		return "";
+		exit(errorStatus);
 	}
 	
 	return commandLineArgs.at(index);
-}
-
-void displaySettings()
-{
-	cout << endl << "Settings: " << endl;
-	cout << "Loop mode (enabled by default): " << boolToText(loopMode) << endl;
-	cout << "Indicate bass (disabled by default): " << boolToText(indicateBass) << endl;
-	cout << "Bright mode (disabled by default): " << boolToText(brightMode) << endl;
-	cout << "Chords only (disabled by default): " << boolToText(ignoreScales) << endl;
-	
-	cout << endl;
 }
 
 string getTypeName(IOtype ioType)
@@ -292,12 +292,88 @@ vector<string> split(string str, char delim)
 	return words;
 }
 
-void loadCPSfile(vector<string> lines)
+string getChordScaleMappingString()
+{
+	string chordScaleMappingString = "";
+
+	map<string,vector<string>>::iterator it;
+	for (it = chordScaleMap.begin(); it != chordScaleMap.end(); it++)
+	{
+		string chord = it->first;
+		vector<string> scales = it->second;
+
+		string scalesString = "[ ";
+		for (int i = 0; i < scales.size() - 1; i++)
+		{
+			scalesString += scales[i];
+			scalesString += " , ";
+		}
+		scalesString += scales[scales.size()-1] + " ]";
+
+		chordScaleMappingString += chord + " : " + scalesString + "\n";
+	}
+
+	return chordScaleMappingString;
+}
+
+void writeChordScaleMapping(string filename)
+{
+	ofstream chordScaleMappingFile;
+	chordScaleMappingFile.open(filename);
+
+	chordScaleMappingFile << getChordScaleMappingString();
+
+	chordScaleMappingFile.close();
+}
+
+void generateChordScaleMapping(string filename)
+{
+	// do stuff to populate chordScaleMap
+
+	writeChordScaleMapping(filename);
+}
+
+void loadChordScaleMapping(string filename)
+{
+	// Read file to chordScaleMap
+
+	vector<string> lines = getLines(filename);
+	
+	for (int i = 0; i < lines.size(); i++)
+	{
+		string line = lines[i];
+		
+		string chord;
+		vector<string> scales;
+
+		vector<string> words = split(line, ' ');
+
+		chord = words[0];
+
+		for (int i = 0; i < words.size(); i++)
+		{
+			string word = words[i];
+
+			if (word.compare(":") == 0) continue;
+			else if (word.compare("[") == 0) continue;
+			else if (word.compare("]") == 0) continue;
+			else if (word.compare(",") == 0) continue;
+
+			else scales.push_back(word);
+		}
+
+		chordScaleMap.insert(pair<string, vector<string>>(chord, scales));
+	}
+}
+
+void loadCPSfile(string filename)
 {
 	// Stuff all chord names in the chord progression vector
 	// For each chord:
 	//	Get the associated scale (append root of chord at beginning if not specified)
 	//	else add "empty" to scaleProgression vector
+
+	vector<string> lines = getLines(filename);
 	
 	bool foundChordsSection = false;
 	
@@ -389,7 +465,7 @@ void loadCPSfile(vector<string> lines)
 	}
 }
 
-void loadMMAfile(vector<string> lines)
+void loadMMAfile(string filename)
 {
 	cerr << "ERROR: MMA files not yet supported." << endl;
 	cerr << "Exiting..." << endl;
@@ -398,22 +474,14 @@ void loadMMAfile(vector<string> lines)
 }
 
 void loadInput(string filename)
-{
-	vector<string> lines = getLines(filename);
-	
+{	
 	switch (inputFileType)
 	{
 		case TXT:
-			loadCPSfile(lines);
+			loadCPSfile(filename);
 			break;
 		case MMA:
-			loadMMAfile(lines);
-			break;
-		default:
-			stringstream ss;
-			ss << "Unsupported input file type for filename: " << filename << " (InputFileType::" << inputFileType << ")";
-			cerr << ss.str() << endl;
-			errorStatus = 2;
+			loadMMAfile(filename);
 			break;
 	}
 
@@ -425,7 +493,6 @@ void setInputFileType(string filename)
 	else if (endsWith(filename, ".mma")) inputFileType = MMA;
 	else
 	{
-		inputFileType = Other;
 		stringstream ss;
 		ss << "ERROR: Unrecognized input file type for input file: " << filename;
 		cerr << ss.str() << endl;
@@ -437,36 +504,22 @@ void setInputFileType(string filename)
 bool setIOFile(int argNumber, IOtype ioType)
 {
 	string arg = getArg(argNumber);
-	string optionName;
-
-	if (argNumber >= getArgCount())
-	{
-		stringstream ss;
-		ss << "ERROR: Please supply an " << getTypeName(ioType) << " filename after the " << optionName << " option.";
-		cerr << ss.str() << endl;
-		errorStatus = 1;
-		exit(errorStatus);
-	}
 	
 	switch (ioType)
 	{
 		case Input:
 			setInputFileType(arg);
-			optionName = INPUT_FILE_OPTION;
 			inputFilename = arg;
 			break;
 		case Output:
-			optionName = OUTPUT_FILE_OPTION;
 			outputFilename = arg;
 			break;
-		default:
-			stringstream ss;
-			ss << "INTERNAL ERROR: Unrecoginized IO type: " << ioType;
-			cerr << ss.str() << endl;
-			errorStatus = -1;
-			exit(errorStatus);
-			break;
 	}
+}
+
+void setChordScaleMappingFile(int argNumber)
+{
+	chordScaleMappingFilename = getArg(argNumber);
 }
 
 void setInputFile(int argNumber)
@@ -483,7 +536,16 @@ bool processOption(int argNumber)
 {
 	string arg = getArg(argNumber);
 
-	if (arg.compare(INPUT_FILE_OPTION) == 0)
+	if (arg.compare(REALTIME_OPTION) == 0)
+	{
+		realtime = true;
+		if (argNumber+1 < getArgCount())
+		{
+			setChordScaleMappingFile(argNumber+1);
+			return true;
+		}
+	}	
+	else if (arg.compare(INPUT_FILE_OPTION) == 0)
 	{
 		setInputFile(argNumber+1);
 		return true;
@@ -526,7 +588,7 @@ bool processOption(int argNumber)
 	
 }
 
-void loadChordMaps(string filename, map<string, string>* map)
+void loadChordMaps(string filename, map<string, string>* forwardMap, map<string, string>* reverseMap)
 {
 	string mostRecentNoteString = "";
 	vector<string> lines = getLines(filename);
@@ -570,14 +632,15 @@ void loadChordMaps(string filename, map<string, string>* map)
 			exit(errorStatus);
 		}
 		
-		map->insert(pair<string, string>(chordType, noteString));
+		forwardMap->insert(pair<string, string>(chordType, noteString));
+		reverseMap->insert(pair<string, string>(noteString, chordType));
 	}
 }
 
 void loadConfig() 
 {
-	loadChordMaps(CHORD_LIST_FILENAME, &chordMap);
-	loadChordMaps(SCALE_LIST_FILENAME, &scaleMap);
+	loadChordMaps(CHORD_LIST_FILENAME, &chordMap, &reverseChordMap);
+	loadChordMaps(SCALE_LIST_FILENAME, &scaleMap, &reverseScaleMap);
 }
 
 string normalizeBrightness(string chord)
@@ -1292,14 +1355,18 @@ void initialize(int argc, char** argv)
 {
 	// Initialize variables
 	errorStatus = 0;
+	realtime = false;
 	brightMode = false;
 	indicateBass = false;
 	loopMode = true;
 	debugMode = false;
 	ignoreScales = false;
 	
+	chordScaleMappingFilename = "";
 	inputFilename = "";
 	outputFilename = "";
+
+	loadConfig();
 	
 	// Process command line options
 	parseArgs(argc, argv);
@@ -1309,10 +1376,34 @@ void initialize(int argc, char** argv)
 		if (processOption(i))
 			i++;
 	}
+
+	if (realtime)
+	{
+		if (chordScaleMappingFilename.size() == 0)
+		{
+			chordScaleMappingFilename = DEFAULT_CHORD_SCALE_MAPPING_FILENAME;
+		}
+
+		ifstream f(chordScaleMappingFilename.c_str());
+		bool fileExists = f.good();
+		f.close();
+
+		if (fileExists)
+		{
+			loadChordScaleMapping(chordScaleMappingFilename);
+		}
+		
+		else
+		{
+			generateChordScaleMapping(chordScaleMappingFilename);
+		}	
+
+		return;
+	}
 	
 	if (inputFilename.size() == 0)
 	{
-		cerr << "Please specify an input file. (-i)" << endl;
+		cerr << "Please specify either an input file (-i) or realtime mode (-t)." << endl;
 		errorStatus = 1;
 		exit(errorStatus);
 	}
@@ -1328,8 +1419,6 @@ void initialize(int argc, char** argv)
 		}
 		outputFilename = inputFilename.substr(indexOfLastSlash+1,indexOfLastPeriod-indexOfLastSlash-1) + "_CPV.mid";
 	}
-
-	loadConfig();
 	
 	loadInput(inputFilename);
 
@@ -1343,28 +1432,71 @@ void initialize(int argc, char** argv)
 	}	
 }
 
+void displaySettings()
+{
+	cout << endl << "Settings: " << endl;
+
+	cout << "Loop mode (enabled by default): " << boolToText(loopMode) << endl;
+	cout << "Indicate bass (disabled by default): " << boolToText(indicateBass) << endl;
+	cout << "Bright mode (disabled by default): " << boolToText(brightMode) << endl;
+	cout << "Chords only (disabled by default): " << boolToText(ignoreScales) << endl;
+	
+	cout << endl;
+}
+
+void displayChordScaleMapping()
+{
+	cout << "Chord Scale Mapping (" << chordScaleMappingFilename << "): " << endl;
+	cout << getChordScaleMappingString();
+	cout << endl;
+}
+
+void displayChordMapping()
+{
+	cout << "Chord Types: " << endl;
+	for (map<string, string>::const_iterator it = chordMap.begin(); it != chordMap.end(); it++)
+	{
+		cout << it->first << "   :   " << it->second << endl;
+	}	
+	cout << endl;
+}
+
+void displayScaleMapping()
+{
+	cout << "Scale Types: " << endl;
+	for (map<string, string>::const_iterator it = scaleMap.begin(); it != scaleMap.end(); it++)
+	{
+		cout << it->first << "   :   " << it->second << endl;
+	}	
+	cout << endl;
+}
+
 int main(int argc, char** argv) 
 {	
 	initialize(argc, argv);
+
+	if (debugMode)
+	{
+		displayChordMapping();
+		displayScaleMapping();
+	}
+
+	if (realtime)
+	{
+		if (debugMode)
+		{
+			displayChordScaleMapping();
+		}
+
+		// do realtime stuff
+
+		return errorStatus;
+	}
 
 	displaySettings();
 	
 	if (debugMode)
 	{
-		cout << "Chord Types: " << endl;
-		for (map<string, string>::const_iterator it = chordMap.begin(); it != chordMap.end(); it++)
-		{
-			cout << it->first << "   :   " << it->second << endl;
-		}	
-		cout << endl;
-
-		cout << "Scale Types: " << endl;
-		for (map<string, string>::const_iterator it = scaleMap.begin(); it != scaleMap.end(); it++)
-		{
-			cout << it->first << "   :   " << it->second << endl;
-		}	
-		cout << endl;
-	
 		cout << "BPM: " << beatsPerMinute << endl;
 		cout << endl;
 		

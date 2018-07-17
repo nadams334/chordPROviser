@@ -89,6 +89,19 @@ const string CHORDS_ONLY_OPTION = "-c";
 
 const string EMPTY_NOTE_STRING = "000000000000";
 
+
+string copyString(string str)
+{
+	string copiedString = "";
+	
+	for (int i = 0; i < str.size(); i++)
+	{
+		copiedString += str[i];
+	}
+	
+	return copiedString;
+}
+
 string boolToText(bool b)
 {
 	if (b) return "Enabled";
@@ -114,6 +127,16 @@ uint32_t getMicrosecondsPerBeat(int beatsPerMinute)
 	}
 	
 	return microsecondsPerBeat;
+}
+
+bool isValidNoteString(string str)
+{
+	int numZeroes = count(str.begin(), str.end(), '0');
+	int numOnes = count(str.begin(), str.end(), '1');
+	int numTwos = count(str.begin(), str.end(), '2');
+	
+	if (str.size() == 12 && ((numZeroes + numOnes + numTwos) == 12)) return true;
+	else return false;
 }
 
 string getRoot(string chordName)
@@ -359,6 +382,7 @@ void loadCPSfile(vector<string> lines)
 	if (beatsPerMinute == 0)
 	{
 		cerr << "ERROR: No tempo found in input file: " << inputFilename << endl;
+		cerr << "Exiting..." << endl;
 		errorStatus = 2;
 		exit(errorStatus);
 	}
@@ -500,6 +524,7 @@ bool processOption(int argNumber)
 
 void loadChordMaps(string filename)
 {
+	string mostRecentNoteString = "";
 	vector<string> lines = getLines(filename);
 	for (int i = 0; i < lines.size(); i++)
 	{
@@ -528,6 +553,19 @@ void loadChordMaps(string filename)
 			}
 		}
 		
+		if (noteString.compare(".") == 0)
+			noteString = copyString(mostRecentNoteString);
+		else if (isValidNoteString(noteString))
+			mostRecentNoteString = copyString(noteString);
+		else
+		{
+			cerr << "ERROR: In file '" << filename << "'" << endl;
+			cerr << "Note String " << noteString << " is not valid." << endl;
+			cerr << "Exiting..." << endl;
+			errorStatus = 3;
+			exit(errorStatus);
+		}
+		
 		chordMap.insert(pair<string, string>(chordType, noteString));
 	}
 }
@@ -535,7 +573,7 @@ void loadChordMaps(string filename)
 void loadConfig() 
 {
 	loadChordMaps(CHORD_LIST_FILENAME);
-	//loadChordMaps(SCALE_LIST_FILENAME);
+	loadChordMaps(SCALE_LIST_FILENAME);
 }
 
 string normalizeBrightness(string chord)
@@ -584,18 +622,6 @@ string combineChords(string chord1, string chord2)
 		combinedChord = normalizeBrightness(combinedChord);
 	
 	return combinedChord;
-}
-
-string copyString(string str)
-{
-	string copiedString = "";
-	
-	for (int i = 0; i < str.size(); i++)
-	{
-		copiedString += str[i];
-	}
-	
-	return copiedString;
 }
 
 string shiftStringRight(string str, int offset)
@@ -669,17 +695,8 @@ int getNoteIndex(string note)
 
 string getChordNoteString(string chordType)
 {
-	int numZeroes = count(chordType.begin(), chordType.end(), '0');
-	int numOnes = count(chordType.begin(), chordType.end(), '1');
-	int numTwos = count(chordType.begin(), chordType.end(), '2');
-	
-	if (chordType.size() == 12 && ((numZeroes + numOnes + numTwos) == 12))
-	{
-		// chord is already in note-string format
-		return chordType;
-	}
-	
-	return chordMap[chordType]; // do lookup translation to get note-string format
+	if (isValidNoteString(chordType)) return chordType;
+	else return chordMap[chordType];
 }
 
 string transposeChord(string chordType, string root, string bass)

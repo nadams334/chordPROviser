@@ -1377,6 +1377,9 @@ void initialize(int argc, char** argv)
 			i++;
 	}
 
+	if (getArgCount() == 1)
+		realtime = true;
+
 	if (realtime)
 	{
 		if (chordScaleMappingFilename.size() == 0)

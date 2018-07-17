@@ -66,6 +66,7 @@ const string CHORD_LIST_FILENAME = "config/chords.cfg";
 const string SCALE_LIST_FILENAME = "config/scales.cfg";
 
 map<string, string> chordMap;
+map<string, string> scaleMap;
 
 const int dimNoteVelocity = 8;
 const int brightNoteVelocity = 80;
@@ -390,7 +391,10 @@ void loadCPSfile(vector<string> lines)
 
 void loadMMAfile(vector<string> lines)
 {
-	
+	cerr << "ERROR: MMA files not yet supported." << endl;
+	cerr << "Exiting..." << endl;
+	errorStatus = 1;
+	exit(errorStatus);
 }
 
 void loadInput(string filename)
@@ -522,7 +526,7 @@ bool processOption(int argNumber)
 	
 }
 
-void loadChordMaps(string filename)
+void loadChordMaps(string filename, map<string, string>* map)
 {
 	string mostRecentNoteString = "";
 	vector<string> lines = getLines(filename);
@@ -566,14 +570,14 @@ void loadChordMaps(string filename)
 			exit(errorStatus);
 		}
 		
-		chordMap.insert(pair<string, string>(chordType, noteString));
+		map->insert(pair<string, string>(chordType, noteString));
 	}
 }
 
 void loadConfig() 
 {
-	loadChordMaps(CHORD_LIST_FILENAME);
-	loadChordMaps(SCALE_LIST_FILENAME);
+	loadChordMaps(CHORD_LIST_FILENAME, &chordMap);
+	loadChordMaps(SCALE_LIST_FILENAME, &scaleMap);
 }
 
 string normalizeBrightness(string chord)
@@ -696,19 +700,26 @@ int getNoteIndex(string note)
 string getChordNoteString(string chordType)
 {
 	if (isValidNoteString(chordType)) return chordType;
-	else return chordMap[chordType];
+
+	string noteString = chordMap[chordType];
+
+	if (noteString.size() == 0)
+		noteString = scaleMap[chordType];
+
+	if (noteString.size() == 0)
+	{
+		cerr << "Unrecognized chord type: " << chordType << endl;
+		unrecognizedChordTypes = true;
+
+		noteString = EMPTY_NOTE_STRING;
+	}
+
+	return noteString;
 }
 
 string transposeChord(string chordType, string root, string bass)
 {
 	string chordNoteString = getChordNoteString(chordType);
-		
-	if (chordNoteString.size() == 0)
-	{
-		cerr << "Unrecognized chord type: " << chordType << endl;
-		unrecognizedChordTypes = true;
-		chordNoteString = EMPTY_NOTE_STRING;
-	}
 	
 	if (chordNoteString.compare(EMPTY_NOTE_STRING) == 0) 
 		return chordNoteString;
@@ -756,7 +767,7 @@ void generateNoteProgression()
 
 	if (unrecognizedChordTypes) 
 	{
-		cerr << endl << "ERROR:MIDI file could not be generated. Please update the chord list to include the missing chord types for this song." << endl;
+		cerr << endl << "ERROR: MIDI file could not be generated. Please update the chord list to include the missing chord types for this song." << endl;
 		exit(1);
 	}
 }
@@ -1342,6 +1353,13 @@ int main(int argc, char** argv)
 	{
 		cout << "Chord Types: " << endl;
 		for (map<string, string>::const_iterator it = chordMap.begin(); it != chordMap.end(); it++)
+		{
+			cout << it->first << "   :   " << it->second << endl;
+		}	
+		cout << endl;
+
+		cout << "Scale Types: " << endl;
+		for (map<string, string>::const_iterator it = scaleMap.begin(); it != scaleMap.end(); it++)
 		{
 			cout << it->first << "   :   " << it->second << endl;
 		}	

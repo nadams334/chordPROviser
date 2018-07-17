@@ -59,11 +59,12 @@ string outputFilename;
 
 InputFileType inputFileType;
 
-const string OUTPUT_DIRECTORY = "output/";
+const string DEFAULT_OUTPUT_DIRECTORY = "output/";
 const string BINASC_DIRECTORY = "binasc/";
 
 // Config data
 const string CHORD_LIST_FILENAME = "config/chords.cfg";
+const string SCALE_LIST_FILENAME = "config/scales.cfg";
 
 map<string, string> chordMap;
 
@@ -535,6 +536,7 @@ void loadChordMaps(string filename)
 void loadConfig() 
 {
 	loadChordMaps(CHORD_LIST_FILENAME);
+	//loadChordMaps(SCALE_LIST_FILENAME);
 }
 
 string normalizeBrightness(string chord)
@@ -1251,7 +1253,7 @@ void createMidiFile()
 	// finalize and write output file
 	
 	midiOutputFile.sortTracks();
-	midiOutputFile.write(OUTPUT_DIRECTORY + outputFilename);
+	midiOutputFile.write(outputFilename);
 	
 	if (debugMode)
 	{
@@ -1297,7 +1299,7 @@ void initialize(int argc, char** argv)
 			if (inputFilename[i] == '/' || inputFilename[i] == '\\') indexOfLastSlash = i;
 			if (inputFilename[i] == '.') indexOfLastPeriod = i;
 		}
-		outputFilename = inputFilename.substr(indexOfLastSlash+1,indexOfLastPeriod-indexOfLastSlash-1) + "_CPV.mid";
+		outputFilename = DEFAULT_OUTPUT_DIRECTORY + inputFilename.substr(indexOfLastSlash+1,indexOfLastPeriod-indexOfLastSlash-1) + "_CPV.mid";
 	}
 
 	loadConfig();

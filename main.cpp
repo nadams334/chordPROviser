@@ -59,7 +59,6 @@ string outputFilename;
 
 InputFileType inputFileType;
 
-const string DEFAULT_OUTPUT_DIRECTORY = "output/";
 const string BINASC_DIRECTORY = "binasc/";
 
 // Config data
@@ -1299,7 +1298,7 @@ void initialize(int argc, char** argv)
 			if (inputFilename[i] == '/' || inputFilename[i] == '\\') indexOfLastSlash = i;
 			if (inputFilename[i] == '.') indexOfLastPeriod = i;
 		}
-		outputFilename = DEFAULT_OUTPUT_DIRECTORY + inputFilename.substr(indexOfLastSlash+1,indexOfLastPeriod-indexOfLastSlash-1) + "_CPV.mid";
+		outputFilename = inputFilename.substr(indexOfLastSlash+1,indexOfLastPeriod-indexOfLastSlash-1) + "_CPV.mid";
 	}
 
 	loadConfig();

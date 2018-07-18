@@ -780,47 +780,71 @@ string getChordNoteString(string chordType)
 	return noteString;
 }
 
-string transposeChord(string chordType, string root, string bass)
+string transposeScale(string scale, string fromRoot, string toRoot)
 {
-	string chordNoteString = getChordNoteString(chordType);
+	if (scale.compare(EMPTY_NOTE_STRING) == 0) 
+		return scale;
 	
-	if (chordNoteString.compare(EMPTY_NOTE_STRING) == 0) 
-		return chordNoteString;
-	
-	int rootIndex = getNoteIndex(root);
-	int bassIndex = getNoteIndex(bass);
-	
-	if (rootIndex >= 0)
+	int fromRootIndex = getNoteIndex(fromRoot);
+	int toRootIndex = getNoteIndex(toRoot);
+
+	if (fromRootIndex >= 0 && toRootIndex >= 0)
 	{
-		// shift chord based on specified root
-		chordNoteString = shiftStringRight(chordNoteString, rootIndex);
+		// shift chord based on specified roots
+
+		int offset = toRootIndex - fromRootIndex;
+		if (offset < 0)	offset += 12;
+
+		scale = shiftStringRight(scale, offset);
+	}
+	else
+	{
+		cerr << "ERROR - [transposeScale]: One or both root notes unrecognized: " << endl;
+		cerr << "fromRoot: " << fromRoot << endl;
+		cerr << "toRoot: " << toRoot << endl;
+		cerr << "scale: " << scale << endl;
+		cerr << "No transposition will be done." << endl;
+		errorStatus = 3;
 	}
 	
+	return scale;
+}
+
+string addBassNoteToScale(string scale, string bassNote)
+{
+	int bassIndex = getNoteIndex(bassNote);
+
 	if (bassIndex >= 0)
 	{
 		// add bass note if not present in chord
-		if (chordNoteString[bassIndex] == '0') chordNoteString[bassIndex] = '1';
+		if (scale[bassIndex] == '0') scale[bassIndex] = '1';
 	}
-	
-	return chordNoteString;
+	else
+	{
+		cerr << "ERROR - [addBassNoteToScale]: Bass note unrecognized: " << endl;
+		cerr << "bassNote: " << bassNote << endl;
+		cerr << "scale: " << scale << endl;
+		cerr << "No modification will be done." << endl;
+		errorStatus = 3;
+	}
+
+	return scale;
 }
 
-string generateChord(int index)
+string generateScale(int index, vector<string> progression)
 {
-	return transposeChord(getChordType(chordProgression[index]), getRoot(chordProgression[index]), getBass(chordProgression[index]));
-}
-
-string generateScale(int index)
-{
-	return transposeChord(getChordType(scaleProgression[index]), getRoot(scaleProgression[index]), getBass(scaleProgression[index]));
+	string scale = getChordNoteString(getChordType(progression[index]));
+	scale = transposeScale(scale, "C", getRoot(progression[index]));
+	scale = addBassNoteToScale(scale, getBass(progression[index]));
+	return scale;
 }
 
 void generateNoteProgression() 
 {
 	for (int i = 0; i < chordProgression.size(); i++)
 	{
-		string notesInChord = generateChord(i);
-		string notesInScale = generateScale(i);
+		string notesInChord = generateScale(i, chordProgression);
+		string notesInScale = generateScale(i, scaleProgression);
 		
 		if (ignoreScales)
 			notesInScale = EMPTY_NOTE_STRING;

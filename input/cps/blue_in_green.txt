@@ -1,0 +1,20 @@
+
+Session: blue_in_green.cps
+
+Folder: C:\Users\Nathan\Documents\chord_pulse\
+
+Style: Jazz Ballad
+
+Tempo: 60 BPM
+
+--------------------------------------------------
+
+Chords:
+
+
+
+| Gm7_'dorian . . . | A7#9_'dim-hw . . . | Dm7_'dorian . . Db7b5_'alt  | Cm7b5_'dorian-b5 . F7b9_'mixolydian-b9 . |
+
+| BbM7#11_'lydian . . . | A7#9#5_'alt . . . | Dm7_'dorian . . . | E7#9#5_'alt . . . |
+
+| Am7_'dorian . . . | Dm7_'dorian . . . |

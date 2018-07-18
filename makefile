@@ -5,7 +5,7 @@ ifeq ($(UNAME), Linux)
 	sound-library := asound
 	thread-library := pthread
 else
-	preprocessor-definition := 	__WINDOWS_MM__
+	preprocessor-definition := __WINDOWS_MM__
 	sound-library := winmm
 	thread-library := multithreaded
 endif

@@ -1,15 +1,15 @@
 UNAME := $(shell uname)
 
 ifeq ($(UNAME), Linux)
-	preprocessor-definition := __LINUX_ALSA__
-	sound-library := asound
-	thread-library := pthread
+	preprocessor-definition := -D __LINUX_ALSA__
+	sound-library := -l asound
+	thread-library := -l pthread
 else
-	preprocessor-definition := __WINDOWS_MM__
-	sound-library := winmm
-	thread-library := multithreaded
+	preprocessor-definition := -D __WINDOWS_MM__
+	sound-library := -l winmm
+	thread-library := -l multithreaded
 endif
 
 all:
-	g++ -std=c++11 -Wall -D $(preprocessor-definition) main.cpp -o chordPROvisor -w -l midifile -l rtmidi -l $(sound-library) -l $(thread-library)
+	g++ -std=c++11 -Wall $(preprocessor-definition) main.cpp -o chordPROvisor -w -l midifile -l rtmidi $(sound-library) $(thread-library)
 	

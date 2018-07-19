@@ -35,6 +35,7 @@ vector<string> noteProgression;
 
 const int UPDATE_CHANNEL_MESSAGE_CODE = 30;
 const int UPDATE_ALL_MESSAGE_CODE = 31;
+const int NOTES_PER_OCTAVE = 12;
 const int STARTING_OCTAVE = 3;
 const int ENDING_OCTAVE = 8;
 const int NUM_CHANNELS = 4;
@@ -196,7 +197,7 @@ bool isValidNoteString(string str)
 	int numOnes = count(str.begin(), str.end(), '1');
 	int numTwos = count(str.begin(), str.end(), '2');
 	
-	if (str.size() == 12 && ((numZeroes + numOnes + numTwos) == 12)) return true;
+	if (str.size() == NOTES_PER_OCTAVE && ((numZeroes + numOnes + numTwos) == NOTES_PER_OCTAVE)) return true;
 	else return false;
 }
 
@@ -841,7 +842,7 @@ string transposeScale(string scale, string fromRoot, string toRoot)
 		// shift chord based on specified roots
 
 		int offset = toRootIndex - fromRootIndex;
-		if (offset < 0)	offset += 12;
+		if (offset < 0)	offset += NOTES_PER_OCTAVE;
 
 		scale = shiftStringRight(scale, offset);
 	}
@@ -1127,7 +1128,7 @@ void addNoteMessage(int channel, int noteIndex, int noteBrightness, int ticks)
 	unsigned char pitchByte;
 	for (int octave = STARTING_OCTAVE; octave < ENDING_OCTAVE || octave == ENDING_OCTAVE && noteIndex == 0; octave++)
 	{
-		pitchByte = (12*octave)+noteIndex;
+		pitchByte = (NOTES_PER_OCTAVE*octave)+noteIndex;
 		
 		vector<unsigned char> noteMessage;
 		noteMessage.push_back(statusByte);

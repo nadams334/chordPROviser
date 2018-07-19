@@ -43,6 +43,7 @@ const int EVEN_CHORD_CHANNEL = 2 - 1;
 const int MIXED_CHORD_CHANNEL = 3 - 1;
 const int BASS_NOTE_CHANNEL = 4 - 1;
 const int STARTING_CHANNEL = 11 - 1;
+const int REALTIME_CHANNEL = 10 - 1;
 
 vector<string> noteProgressionByChannel[NUM_CHANNELS];
 vector<int> chordChanges; // a list of every beat (zero-based) where a chord changes occurs
@@ -75,9 +76,6 @@ const unsigned char ccStatusCodeMax = (unsigned char)0xBF;
 
 const int cc_damper = 64;
 const int cc_sostenuto = 66;
-
-const int cc_update_channel = 30;
-const int cc_update_all = 31;
 
 const int cc_activate = cc_sostenuto;
 

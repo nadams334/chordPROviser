@@ -2,6 +2,7 @@
 // Author: Nathan Adams
 // 2016-2018
 
+#include <ctime>
 #include <string>
 #include <stdio.h>
 #include <stdint.h>
@@ -105,7 +106,7 @@ InputFileType inputFileType;
 const string BINASC_DIRECTORY = "binasc/";
 
 // Config data
-const string DEFAULT_CHORD_SCALE_MAPPING_FILENAME = "config/chord-scale.cfg";
+const string DEFAULT_CHORD_SCALE_MAPPING_FILENAME = "config/map/chord-scale.cfg";
 
 const string CHORD_LIST_FILENAME = "config/chords.cfg";
 const string SCALE_LIST_FILENAME = "config/scales.cfg";
@@ -1742,11 +1743,68 @@ void displayScaleMapping()
 void realtimeLoop()
 {
 	char input;
-	while (std::cin.get(input))
+	while (cin.get(input))
 	{
 
 	}
-	cout << endl << "Received EOF." << endl;
+	cin.clear();
+	cout << "Received EOF." << endl;
+}
+
+string getFormattedTimestamp()
+{
+	time_t rawtime;
+	struct tm * timeinfo;
+	char buffer[80];
+
+	time (&rawtime);
+	timeinfo = localtime(&rawtime);
+	
+	strftime(buffer,sizeof(buffer),"%m-%d-%Y_%I:%M:%S",timeinfo);
+	string str(buffer);
+
+	return str;
+}
+
+void wouldYouLikeToSave()
+{
+	cout << "Would you like to save changes to chord-scale priority?" << endl;
+	cout << "1) Yes" << endl;
+	cout << "2) No" << endl;
+	cout << "Please enter a number: ";
+
+	int input;
+	cin >> input;
+	cout << endl;
+
+	if (input == 1)
+	{
+		cout << "Would you like to create a new file or overwrite '" << chordScaleMappingFilename << "'?" << endl;
+		cout << "1) Save to new file" << endl;
+		cout << "2) Overwrite" << endl;
+		cout << "Please enter a number: ";
+
+		cin >> input;
+		cout << endl;
+
+		string fileToSaveTo = "";
+
+		if (input == 2)
+		{
+			fileToSaveTo = chordScaleMappingFilename;
+		}
+		else
+		{
+			fileToSaveTo = chordScaleMappingFilename.substr(0, chordScaleMappingFilename.find_last_of(".")) + "[" + getFormattedTimestamp() + "]" + chordScaleMappingFilename.substr(chordScaleMappingFilename.find_last_of("."), chordScaleMappingFilename.size());
+		}
+
+		writeChordScaleMapping(fileToSaveTo);
+		cout << "Changes have been saved to '" << fileToSaveTo << "'." << endl;
+	}
+	else
+	{
+		cout << "Changes will not be saved." << endl;
+	}
 }
 
 int main(int argc, char** argv) 
@@ -1767,6 +1825,10 @@ int main(int argc, char** argv)
 		}
 
 		realtimeLoop();
+
+		cout << endl;
+
+		wouldYouLikeToSave();
 
 		cout << endl;
 

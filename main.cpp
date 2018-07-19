@@ -14,6 +14,7 @@
 #include <map>
 
 #include "MidiFile.h"
+#include "RtMidi.h"
 
 
 
@@ -47,6 +48,48 @@ vector<string> noteProgressionByChannel[NUM_CHANNELS];
 vector<int> chordChanges; // a list of every beat (zero-based) where a chord changes occurs
 
 const int TICKS_PER_QUARTER_NOTE = 384;
+
+// RtMidi
+RtMidiIn* midiIn;
+RtMidiOut* midiOut;
+
+const string DEFAULT_RTMIDI_IN_NAME = "chordPROvisor-input";
+const string DEFAULT_RTMIDI_OUT_NAME = "chordPROvisor-output";
+
+bool autoConnectALSAPorts = true; // use aconnect to automatically establish ALSA connection on launch
+const string DEFAULT_ALSA_INPUT_NAME_1 = "CH345";
+const string DEFAULT_ALSA_OUTPUT_NAME_1 = DEFAULT_RTMIDI_IN_NAME;
+const string DEFAULT_ALSA_INPUT_NAME_2 = DEFAULT_RTMIDI_OUT_NAME;
+const string DEFAULT_ALSA_OUTPUT_NAME_2 = "midiLEDs-input";
+
+std::vector<unsigned char>* lastMidiMessageReceived;
+
+// Midi Messages
+const unsigned char noteOnCodeMin = (unsigned char)0x90;
+const unsigned char noteOnCodeMax = (unsigned char)0x9F;
+const unsigned char noteOffCodeMin = (unsigned char)0x80;
+const unsigned char noteOffCodeMax = (unsigned char)0x8F;
+
+const unsigned char ccStatusCodeMin = (unsigned char)0xB0;
+const unsigned char ccStatusCodeMax = (unsigned char)0xBF;
+
+const int cc_damper = 64;
+const int cc_sostenuto = 66;
+
+const int cc_update_channel = 30;
+const int cc_update_all = 31;
+
+const int cc_activate = cc_sostenuto;
+
+bool* damperActive;
+bool* sostenutoActive;
+
+const int numNotes = 128;
+const int numChannels = 16;
+
+vector<int> activeNotes[numChannels];
+vector<int> sostenutoNotes[numChannels];
+vector<int> damperNotes[numChannels];
 
 // File I/O
 MidiFile midiOutputFile;
@@ -102,6 +145,13 @@ const string CHORDS_ONLY_OPTION = "-c";
 
 const string EMPTY_NOTE_STRING = "000000000000";
 
+
+void end(int status)
+{
+	delete midiIn;
+	delete midiOut;
+	exit(status);
+}
 
 string copyString(string str)
 {
@@ -228,7 +278,7 @@ string getArg(int index)
 		cerr << "Attempting to access out-of-bounds command line argument #: " << index << endl;
 		cerr << "Exiting..." << endl;
 		errorStatus = 2;
-		exit(errorStatus);
+		end(errorStatus);
 	}
 	
 	return commandLineArgs.at(index);
@@ -310,7 +360,7 @@ string getChordScaleMappingString()
 		}
 		scalesString += scales[scales.size()-1] + " ]";
 
-		chordScaleMappingString += chord + " : " + scalesString + "\n";
+		chordScaleMappingString += chord + "   :   " + scalesString + "\n";
 	}
 
 	return chordScaleMappingString;
@@ -461,7 +511,7 @@ void loadCPSfile(string filename)
 		cerr << "ERROR: No tempo found in input file: " << inputFilename << endl;
 		cerr << "Exiting..." << endl;
 		errorStatus = 2;
-		exit(errorStatus);
+		end(errorStatus);
 	}
 }
 
@@ -470,7 +520,7 @@ void loadMMAfile(string filename)
 	cerr << "ERROR: MMA files not yet supported." << endl;
 	cerr << "Exiting..." << endl;
 	errorStatus = 1;
-	exit(errorStatus);
+	end(errorStatus);
 }
 
 void loadInput(string filename)
@@ -497,7 +547,7 @@ void setInputFileType(string filename)
 		ss << "ERROR: Unrecognized input file type for input file: " << filename;
 		cerr << ss.str() << endl;
 		errorStatus = 1;
-		exit(errorStatus);
+		end(errorStatus);
 	}
 }
 
@@ -581,7 +631,7 @@ bool processOption(int argNumber)
 		ss << "ERROR: Unrecoginized command line argument #" << argNumber << ": " << arg;
 		cerr << ss.str() << endl;
 		errorStatus = 1;
-		exit(errorStatus);
+		end(errorStatus);
 	}
 	
 	return false;
@@ -629,7 +679,7 @@ void loadChordMaps(string filename, map<string, string>* forwardMap, map<string,
 			cerr << "Note String " << noteString << " is not valid." << endl;
 			cerr << "Exiting..." << endl;
 			errorStatus = 3;
-			exit(errorStatus);
+			end(errorStatus);
 		}
 		
 		forwardMap->insert(pair<string, string>(chordType, noteString));
@@ -855,7 +905,7 @@ void generateNoteProgression()
 	if (unrecognizedChordTypes) 
 	{
 		cerr << endl << "ERROR: MIDI file could not be generated. Please update the chord list to include the missing chord types for this song." << endl;
-		exit(1);
+		end(1);
 	}
 }
 
@@ -1375,6 +1425,194 @@ void createMidiFile()
 	}
 }
 
+void setNote(int channel, int note, int velocity)
+{
+	if (velocity > 0) // turning note on
+	{
+		activeNotes[channel].push_back(note);
+		if (damperActive[channel])
+		{
+			activeNotes[channel].push_back(note);
+			damperNotes[channel].push_back(note);
+		}
+	}
+	
+	else if (velocity == 0) // turning note off
+	{
+		if (!activeNotes[channel].empty())
+		{
+			for (int i = 0; i < activeNotes[channel].size(); i++)
+			{
+				if (activeNotes[channel][i] == note)
+				{
+					activeNotes[channel].erase(activeNotes[channel].begin()+i);
+				}
+			}
+		}
+	}
+	
+	else
+	{
+		std::cerr << "WARNING: Invalid velocity for note " << note << " on channel " << channel << ". Note message ignored." << std::endl;
+		return;
+	}
+}
+
+void handleDamperMessage(bool enable, int channel)
+{
+	if (enable)
+	{
+		if (damperActive[channel])
+		{
+			//std::cerr << "WARNING: Received damper ON request, but damper is already active. Ignoring request." << std::endl;
+			return;
+		}
+
+		damperActive[channel] = true;
+
+		unsigned int size = activeNotes[channel].size();
+		for (int i = 0; i < size; i++)
+		{
+			int activeNote = activeNotes[channel][i];
+			activeNotes[channel].push_back(activeNote);
+			damperNotes[channel].push_back(activeNote);
+		}
+	}
+	else
+	{
+		if (!damperActive[channel])
+		{
+			//std::cerr << "WARNING: Received damper OFF request, but damper is not currently active. Ignoring request." << std::endl;
+			return;
+		}
+
+		damperActive[channel] = false;
+
+		// Turn all damper notes off
+		for (int i = 0; i < damperNotes[channel].size(); i++)
+		{
+			int activeNote = damperNotes[channel][i];
+			setNote(channel, activeNote, 0); // turn note off
+		}	
+
+		damperNotes[channel].clear();
+	}
+}
+
+void handleSostenutoMessage(bool enable, int channel)
+{
+	if (enable)
+	{
+		if (sostenutoActive[channel])
+		{
+			//std::cerr << "WARNING: Received sostenuto ON request, but sostenuto is already active. Ignoring request." << std::endl;
+			return;
+		}
+
+		sostenutoActive[channel] = true;
+
+		unsigned int size = activeNotes[channel].size();
+		for (int i = 0; i < size; i++)
+		{
+			int activeNote = activeNotes[channel][i];
+			activeNotes[channel].push_back(activeNote);
+			sostenutoNotes[channel].push_back(activeNote);
+		}
+	}
+	else
+	{
+		if (!sostenutoActive[channel])
+		{
+			//std::cerr << "WARNING: Received sostenuto OFF request, but sostenuto is not currently active. Ignoring request." << std::endl;
+			return;
+		}
+
+		sostenutoActive[channel] = false;
+
+		// Turn all sostenuto notes off
+		for (int i = 0; i < sostenutoNotes[channel].size(); i++)
+		{
+			int activeNote = sostenutoNotes[channel][i];
+			setNote(channel, activeNote, 0); // turn note off
+		}	
+
+		sostenutoNotes[channel].clear();
+	}
+}
+
+void handleActivateMessage(bool enable, int channel)
+{
+	// output stuff with midiOut
+}
+
+void onMidiMessageReceived(double deltatime, std::vector<unsigned char>* message, void* userData)
+{
+	lastMidiMessageReceived->clear();
+	for (unsigned int i = 0; i < message->size(); i++)
+	{
+		lastMidiMessageReceived->push_back(message->at(i));
+	}
+
+	int code = (int) message->at(0);
+
+	if (code >= noteOnCodeMin && code <= noteOnCodeMax)
+	{
+		int channel = code - noteOnCodeMin;
+		setNote(channel, message->at(1), message->at(2));
+	}	
+	else if (code >= noteOffCodeMin && code <= noteOffCodeMax)
+	{
+		int channel = code - noteOffCodeMin;
+		setNote(channel, message->at(1), 0);
+	}
+	else if (code >= ccStatusCodeMin && code <= ccStatusCodeMax)
+	{
+		int ccCode = (int) message->at(1);
+		int value = (int) message->at(2);
+		int channel = code - (int) ccStatusCodeMin;
+
+		if (ccCode == cc_sostenuto)
+		{
+			handleSostenutoMessage(value > 0, channel);
+		}
+		else if (ccCode == cc_damper)
+		{
+			handleDamperMessage(value > 0, channel);
+		}
+
+		if (ccCode = cc_activate)
+		{
+			handleActivateMessage(value > 0, channel);
+		}
+	}
+}
+
+void initializeRtMidi()
+{
+	damperActive = new bool[numChannels];
+	sostenutoActive = new bool[numChannels];
+
+	midiIn = new RtMidiIn(RtMidi::Api::UNSPECIFIED, DEFAULT_RTMIDI_IN_NAME, 100);
+	midiIn->openVirtualPort();
+	midiIn->setCallback( &onMidiMessageReceived );
+	midiIn->ignoreTypes( true, true, true );
+
+	midiOut = new RtMidiOut(RtMidi::Api::UNSPECIFIED, DEFAULT_RTMIDI_OUT_NAME);
+	midiOut->openVirtualPort();
+
+	lastMidiMessageReceived = new std::vector<unsigned char>();
+
+	// Connect ALSA Ports
+	if (autoConnectALSAPorts)
+	{
+		string command1 = "aconnect \"" + DEFAULT_ALSA_INPUT_NAME_1 + "\" \"" + DEFAULT_ALSA_OUTPUT_NAME_1 + "\"";
+		string command2 = "aconnect \"" + DEFAULT_ALSA_INPUT_NAME_2 + "\" \"" + DEFAULT_ALSA_OUTPUT_NAME_2 + "\"";		
+		
+		system(command1.c_str());
+		system(command2.c_str());
+	}
+}
+
 void initialize(int argc, char** argv)
 {
 	// Initialize variables
@@ -1389,6 +1627,8 @@ void initialize(int argc, char** argv)
 	chordScaleMappingFilename = "";
 	inputFilename = "";
 	outputFilename = "";
+
+	initializeRtMidi();
 
 	loadConfig();
 	
@@ -1425,6 +1665,8 @@ void initialize(int argc, char** argv)
 			generateChordScaleMapping(chordScaleMappingFilename);
 		}	
 
+		cout << endl << "Realtime mode active." << endl << endl;
+
 		return;
 	}
 	
@@ -1432,7 +1674,7 @@ void initialize(int argc, char** argv)
 	{
 		cerr << "Please specify either an input file (-i) or realtime mode (-t)." << endl;
 		errorStatus = 1;
-		exit(errorStatus);
+		end(errorStatus);
 	}
 	
 	if (outputFilename.size() == 0)
@@ -1455,7 +1697,7 @@ void initialize(int argc, char** argv)
 	{
 		cerr << "No chords found in input file. Exiting..." << endl;
 		errorStatus = 2;
-		exit(errorStatus);
+		end(errorStatus);
 	}	
 }
 
@@ -1498,6 +1740,16 @@ void displayScaleMapping()
 	cout << endl;
 }
 
+void realtimeLoop()
+{
+	char input;
+	while (std::cin.get(input))
+	{
+
+	}
+	cout << endl << "Received EOF." << endl;
+}
+
 int main(int argc, char** argv) 
 {	
 	initialize(argc, argv);
@@ -1515,10 +1767,14 @@ int main(int argc, char** argv)
 			displayChordScaleMapping();
 		}
 
-		// do realtime stuff
+		realtimeLoop();
 
-		return errorStatus;
+		cout << endl;
+
+		end(errorStatus);
 	}
+
+	// else continue to standard chord progression mode
 
 	displaySettings();
 	
@@ -1580,5 +1836,5 @@ int main(int argc, char** argv)
 		cout << endl;
 	}
 
-	return errorStatus;
+	end(errorStatus);
 }

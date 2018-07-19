@@ -1628,8 +1628,6 @@ void initialize(int argc, char** argv)
 	inputFilename = "";
 	outputFilename = "";
 
-	initializeRtMidi();
-
 	loadConfig();
 	
 	// Process command line options
@@ -1646,6 +1644,8 @@ void initialize(int argc, char** argv)
 
 	if (realtime)
 	{
+		initializeRtMidi();
+
 		if (chordScaleMappingFilename.size() == 0)
 		{
 			chordScaleMappingFilename = DEFAULT_CHORD_SCALE_MAPPING_FILENAME;

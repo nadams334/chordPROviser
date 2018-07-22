@@ -1625,7 +1625,6 @@ string getScale(string chordScale)
 
 void outputScale(string scale)
 {
-	activeChordScale = scale;
 	for (int i = 0; i < scale.size(); i++)
 	{
 		addNoteMessage(REALTIME_CHANNEL, i, scale[i] - '0', -1);
@@ -1677,11 +1676,11 @@ void activateRealtime(bool enable, int channel)
 		}
 
 		suggestedScale = getScale(activeChordScale);
+		setPriorityScale(activeChordScale, suggestedScale);
+
 		outputScale(suggestedScale);
 
 		realtimeActive[channel] = true;
-
-		setPriorityScale(activeChordScale, suggestedScale);
 	}
 	else
 	{
@@ -1729,6 +1728,11 @@ void onMidiMessageReceived(double deltatime, std::vector<unsigned char>* message
 	{
 		int channel = code - noteOnCodeMin;
 		setNote(channel, message->at(1), message->at(2));
+
+		if (message->at(2) > 0 && realtimeMode && realtimeActive[channel])
+		{
+			activateRealtime(true, channel);
+		}
 	}	
 	else if (code >= noteOffCodeMin && code <= noteOffCodeMax)
 	{

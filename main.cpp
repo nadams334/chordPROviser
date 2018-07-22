@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <vector>
+#include <deque>
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -40,12 +41,12 @@ const int NOTES_PER_OCTAVE = 12;
 const int STARTING_OCTAVE = 3;
 const int ENDING_OCTAVE = 8;
 const int NUM_CHANNELS = 4;
+const int REALTIME_CHANNEL = 0 - 1;
 const int ODD_CHORD_CHANNEL = 1 - 1;
 const int EVEN_CHORD_CHANNEL = 2 - 1;
 const int MIXED_CHORD_CHANNEL = 3 - 1;
 const int BASS_NOTE_CHANNEL = 4 - 1;
 const int STARTING_CHANNEL = 11 - 1;
-const int REALTIME_CHANNEL = 10 - 1;
 
 vector<string> noteProgressionByChannel[NUM_CHANNELS];
 vector<int> chordChanges; // a list of every beat (zero-based) where a chord changes occurs
@@ -79,10 +80,11 @@ const unsigned char ccStatusCodeMax = (unsigned char)0xBF;
 const int cc_damper = 64;
 const int cc_sostenuto = 66;
 
-const int cc_activate = cc_sostenuto;
+const int cc_activate_realtime = cc_sostenuto;
 
 bool* damperActive;
 bool* sostenutoActive;
+bool* realtimeActive;
 
 const int numNotes = 128;
 const int numChannels = 16;
@@ -90,6 +92,9 @@ const int numChannels = 16;
 vector<int> activeNotes[numChannels];
 vector<int> sostenutoNotes[numChannels];
 vector<int> damperNotes[numChannels];
+
+string activeChordScale;
+string suggestedScale;
 
 // File I/O
 MidiFile midiOutputFile;
@@ -111,7 +116,7 @@ const string DEFAULT_CHORD_SCALE_MAPPING_FILENAME = "config/map/chord-scale.cfg"
 const string CHORD_LIST_FILENAME = "config/chords.cfg";
 const string SCALE_LIST_FILENAME = "config/scales.cfg";
 
-map<string, vector<string>> chordScaleMap; // M7 : [ 'ionian , 'lydian , 'mixolydian , ... ]
+map<string, deque<string>> chordScaleMap; // M7 : [ 'ionian , 'lydian , 'mixolydian , ... ]
 
 map<string, string> chordMap;
 map<string, string> scaleMap;
@@ -131,7 +136,7 @@ bool indicateBass;
 bool debugMode;
 bool ignoreScales;
 
-bool realtime;
+bool realtimeMode;
 
 const string REALTIME_OPTION = "-t";
 
@@ -346,16 +351,27 @@ string getChordScaleMappingString()
 {
 	string chordScaleMappingString = "";
 
-	map<string,vector<string>>::iterator it;
+	map<string,deque<string>>::iterator it;
 	for (it = chordScaleMap.begin(); it != chordScaleMap.end(); it++)
 	{
 		string chord = it->first;
-		vector<string> scales = it->second;
+		string chordName = reverseChordMap[chord];
+		string scaleName = reverseScaleMap[chord];
+		if (chordName.size() > 0) chord = chordName;
+		else if (scaleName.size() > 0) chord = scaleName;
+
+		deque<string> scales = it->second;
 
 		string scalesString = "[ ";
 		for (int i = 0; i < scales.size() - 1; i++)
 		{
-			scalesString += scales[i];
+			string scale = scales[i];
+			string chordName = reverseChordMap[scale];
+			string scaleName = reverseScaleMap[scale];
+			if (chordName.size() > 0) scale = chordName;
+			else if (scaleName.size() > 0) scale = scaleName;
+
+			scalesString += scale;
 			scalesString += " , ";
 		}
 		scalesString += scales[scales.size()-1] + " ]";
@@ -394,25 +410,44 @@ void loadChordScaleMapping(string filename)
 		string line = lines[i];
 		
 		string chord;
-		vector<string> scales;
+		deque<string> scales;
 
 		vector<string> words = split(line, ' ');
 
 		chord = words[0];
+		if (!isValidNoteString(chord)) chord = chordMap[words[0]];
+		if (!isValidNoteString(chord)) chord = scaleMap[words[0]];
+		if (!isValidNoteString(chord))
+		{
+			cerr << "ERROR (" << filename << "): '" << words[0] << "' is not a valid chord. Exiting..." << endl;
+			errorStatus = 2;
+			exit(errorStatus);
+		}
 
 		for (int i = 0; i < words.size(); i++)
 		{
 			string word = words[i];
+			string scale = "";
 
 			if (word.compare(":") == 0) continue;
 			else if (word.compare("[") == 0) continue;
 			else if (word.compare("]") == 0) continue;
 			else if (word.compare(",") == 0) continue;
 
-			else scales.push_back(word);
+			else scale = word;
+			if (!isValidNoteString(scale)) scale = chordMap[word];
+			if (!isValidNoteString(scale)) scale = scaleMap[word];
+			if (!isValidNoteString(scale))
+			{
+				cerr << "ERROR (" << filename << "): '" << word << "' is not a valid scale. Exiting..." << endl;
+				errorStatus = 2;
+				exit(errorStatus);
+			}
+
+			scales.push_back(scale);
 		}
 
-		chordScaleMap.insert(pair<string, vector<string>>(chord, scales));
+		chordScaleMap.insert(pair<string, deque<string>>(chord, scales));
 	}
 }
 
@@ -588,7 +623,7 @@ bool processOption(int argNumber)
 
 	if (arg.compare(REALTIME_OPTION) == 0)
 	{
-		realtime = true;
+		realtimeMode = true;
 		if (argNumber+1 < getArgCount())
 		{
 			setChordScaleMappingFile(argNumber+1);
@@ -1136,7 +1171,14 @@ void addNoteMessage(int channel, int noteIndex, int noteBrightness, int ticks)
 		noteMessage.push_back(pitchByte);
 		noteMessage.push_back(velocityByte);
 		
-		midiOutputFile.addEvent(channel, ticks, noteMessage);
+		if (ticks < 0)
+		{
+			midiOut->sendMessage(&noteMessage);
+		}
+		else
+		{
+			midiOutputFile.addEvent(channel, ticks, noteMessage);
+		}
 		
 		if (debugMode)
 		{
@@ -1224,7 +1266,14 @@ void addUpdateMessage(int ticks)
 	updateMessage.push_back(dataByte);
 	updateMessage.push_back(valueByte);
 		
-	midiOutputFile.addEvent(channel, ticks, updateMessage);
+	if (ticks < 0)
+	{
+		midiOut->sendMessage(&updateMessage);
+	}
+	else
+	{
+		midiOutputFile.addEvent(channel, ticks, updateMessage);
+	}
 		
 	if (debugMode)
 	{
@@ -1251,7 +1300,14 @@ void addUpdateMessage(int ticks, int channel)
 	updateMessage.push_back(dataByte);
 	updateMessage.push_back(valueByte);
 		
-	midiOutputFile.addEvent(channel, ticks, updateMessage);
+	if (ticks < 0)
+	{
+		midiOut->sendMessage(&updateMessage);
+	}
+	else
+	{
+		midiOutputFile.addEvent(channel, ticks, updateMessage);
+	}
 		
 	if (debugMode)
 	{
@@ -1453,7 +1509,7 @@ void setNote(int channel, int note, int velocity)
 	
 	else
 	{
-		std::cerr << "WARNING: Invalid velocity for note " << note << " on channel " << channel << ". Note message ignored." << std::endl;
+		cerr << "WARNING: Invalid velocity for note " << note << " on channel " << channel << ". Note message ignored." << endl;
 		return;
 	}
 }
@@ -1464,7 +1520,7 @@ void handleDamperMessage(bool enable, int channel)
 	{
 		if (damperActive[channel])
 		{
-			//std::cerr << "WARNING: Received damper ON request, but damper is already active. Ignoring request." << std::endl;
+			cerr << "WARNING: Received damper ON request, but damper is already active. Ignoring request." << endl;
 			return;
 		}
 
@@ -1482,7 +1538,7 @@ void handleDamperMessage(bool enable, int channel)
 	{
 		if (!damperActive[channel])
 		{
-			//std::cerr << "WARNING: Received damper OFF request, but damper is not currently active. Ignoring request." << std::endl;
+			cerr << "WARNING: Received damper OFF request, but damper is not currently active. Ignoring request." << endl;
 			return;
 		}
 
@@ -1505,7 +1561,7 @@ void handleSostenutoMessage(bool enable, int channel)
 	{
 		if (sostenutoActive[channel])
 		{
-			//std::cerr << "WARNING: Received sostenuto ON request, but sostenuto is already active. Ignoring request." << std::endl;
+			cerr << "WARNING: Received sostenuto ON request, but sostenuto is already active. Ignoring request." << endl;
 			return;
 		}
 
@@ -1523,7 +1579,7 @@ void handleSostenutoMessage(bool enable, int channel)
 	{
 		if (!sostenutoActive[channel])
 		{
-			//std::cerr << "WARNING: Received sostenuto OFF request, but sostenuto is not currently active. Ignoring request." << std::endl;
+			cerr << "WARNING: Received sostenuto OFF request, but sostenuto is not currently active. Ignoring request." << endl;
 			return;
 		}
 
@@ -1540,9 +1596,123 @@ void handleSostenutoMessage(bool enable, int channel)
 	}
 }
 
-void handleActivateMessage(bool enable, int channel)
+string getScale(string chordScale)
 {
-	// output stuff with midiOut
+	if (!isValidNoteString(chordScale))
+	{
+		cerr << "INTERNAL ERROR: getScale('" << chordScale << "'): parameter is not valid note string. Ignoring..." << endl;
+		return EMPTY_NOTE_STRING;
+	}	
+
+	string key = EMPTY_NOTE_STRING;
+	for (int i = 0; i < chordScale.size(); i++)
+	{
+		if (chordScale[i] == '1' || chordScale[i] == '2')
+			key[i] = '1';
+	}
+
+	deque<string> scales = chordScaleMap[key];
+	string scale = scales.front();
+
+	for (int i = 0; i < chordScale.size(); i++)
+	{
+		if (chordScale[i] == '2')
+			scale[i] = '2';
+	}
+
+	return scale;
+}
+
+void outputScale(string scale)
+{
+	activeChordScale = scale;
+	for (int i = 0; i < scale.size(); i++)
+	{
+		addNoteMessage(REALTIME_CHANNEL, i, scale[i] - '0', -1);
+	}
+	addUpdateMessage(-1);
+}
+
+void setPriorityScale(string chord, string scale)
+{
+	string normalizedChord = EMPTY_NOTE_STRING;
+	for (int i = 0; i < chord.size(); i++)
+	{
+		if (chord[i] == '1' || chord[i] == '2')
+			normalizedChord = '1';
+	}
+
+	deque<string> scales = chordScaleMap[normalizedChord];
+	
+	for (unsigned int i = 0; i < scales.size(); i++)
+	{
+		if (scales[i] == scale)
+		{
+			scales.erase(scales.begin()+i);
+			break;
+		}
+	}
+
+	scales.push_front(scale);
+}
+
+void activateRealtime(bool enable, int channel)
+{
+	if (enable)
+	{
+		for (int i = 0; i < activeNotes[channel].size(); i++)
+		{
+			int activeNote = activeNotes[channel][i];
+			int noteIndex = activeNote % 12;
+			if (activeChordScale[noteIndex] == '0')
+			{
+				int intensity = 0;
+				if (realtimeActive[channel])
+					intensity = 1;
+				else
+					intensity = 2;
+
+				activeChordScale[noteIndex] = '0' + intensity;
+			}
+		}
+
+		suggestedScale = getScale(activeChordScale);
+		outputScale(suggestedScale);
+
+		realtimeActive[channel] = true;
+
+		setPriorityScale(activeChordScale, suggestedScale);
+	}
+	else
+	{
+		realtimeActive[channel] = false;
+		activeChordScale = EMPTY_NOTE_STRING;
+		suggestedScale = EMPTY_NOTE_STRING;
+
+		outputScale(EMPTY_NOTE_STRING);
+	}
+}
+
+void handleActivateRealtimeMessage(bool enable, int channel)
+{
+	if (enable)
+	{
+		if (realtimeActive[channel])
+		{
+			std::cerr << "WARNING: Received realtime ON request, but realtime is already active. Ignoring request." << std::endl;
+			return;	
+		}
+	}
+	else
+	{
+		if (!realtimeActive[channel])
+		{
+			std::cerr << "WARNING: Received realtime OFF request, but realtime is not currently active. Ignoring request." << std::endl;
+			return;
+		}
+	}
+
+	activateRealtime(enable, channel);
 }
 
 void onMidiMessageReceived(double deltatime, std::vector<unsigned char>* message, void* userData)
@@ -1580,9 +1750,9 @@ void onMidiMessageReceived(double deltatime, std::vector<unsigned char>* message
 			handleDamperMessage(value > 0, channel);
 		}
 
-		if (ccCode = cc_activate)
+		if (ccCode = cc_activate_realtime)
 		{
-			handleActivateMessage(value > 0, channel);
+			handleActivateRealtimeMessage(value > 0, channel);
 		}
 	}
 }
@@ -1617,7 +1787,7 @@ void initialize(int argc, char** argv)
 {
 	// Initialize variables
 	errorStatus = 0;
-	realtime = false;
+	realtimeMode = false;
 	brightMode = false;
 	indicateBass = false;
 	loopMode = true;
@@ -1627,6 +1797,9 @@ void initialize(int argc, char** argv)
 	chordScaleMappingFilename = "";
 	inputFilename = "";
 	outputFilename = "";
+
+	activeChordScale = EMPTY_NOTE_STRING;
+	suggestedScale = EMPTY_NOTE_STRING;
 
 	loadConfig();
 	
@@ -1640,9 +1813,9 @@ void initialize(int argc, char** argv)
 	}
 
 	if (getArgCount() == 1)
-		realtime = true;
+		realtimeMode = true;
 
-	if (realtime)
+	if (realtimeMode)
 	{
 		initializeRtMidi();
 
@@ -1817,7 +1990,7 @@ int main(int argc, char** argv)
 		displayScaleMapping();
 	}
 
-	if (realtime)
+	if (realtimeMode)
 	{
 		if (debugMode)
 		{

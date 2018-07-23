@@ -80,7 +80,7 @@ const unsigned char ccStatusCodeMax = (unsigned char)0xBF;
 const int cc_damper = 64;
 const int cc_sostenuto = 66;
 
-const int cc_activate_realtime = cc_sostenuto;
+const int cc_activate_realtime = /*cc_sostenuto*/32;
 
 bool* damperActive;
 bool* sostenutoActive;
@@ -94,7 +94,7 @@ vector<int> sostenutoNotes[numChannels];
 vector<int> damperNotes[numChannels];
 
 string activeChordScale;
-string suggestedScale;
+string activeSuggestedScale;
 
 // File I/O
 MidiFile midiOutputFile;
@@ -356,25 +356,21 @@ string getChordScaleMappingString()
 	{
 		string chord = it->first;
 		string chordName = reverseChordMap[chord];
-		string scaleName = reverseScaleMap[chord];
 		if (chordName.size() > 0) chord = chordName;
-		else if (scaleName.size() > 0) chord = scaleName;
 
 		deque<string> scales = it->second;
 
 		string scalesString = "[ ";
-		for (int i = 0; i < scales.size() - 1; i++)
+		for (int i = 0; i < scales.size(); i++)
 		{
 			string scale = scales[i];
-			string chordName = reverseChordMap[scale];
 			string scaleName = reverseScaleMap[scale];
-			if (chordName.size() > 0) scale = chordName;
-			else if (scaleName.size() > 0) scale = scaleName;
+			if (scaleName.size() > 0) scale = scaleName;
 
 			scalesString += scale;
 			scalesString += " , ";
 		}
-		scalesString += scales[scales.size()-1] + " ]";
+		scalesString = scalesString.substr(0, scalesString.size() - 3) + " ]";
 
 		chordScaleMappingString += chord + "   :   " + scalesString + "\n";
 	}
@@ -416,7 +412,6 @@ void loadChordScaleMapping(string filename)
 
 		chord = words[0];
 		if (!isValidNoteString(chord)) chord = chordMap[words[0]];
-		if (!isValidNoteString(chord)) chord = scaleMap[words[0]];
 		if (!isValidNoteString(chord))
 		{
 			cerr << "ERROR (" << filename << "): '" << words[0] << "' is not a valid chord. Exiting..." << endl;
@@ -424,7 +419,7 @@ void loadChordScaleMapping(string filename)
 			exit(errorStatus);
 		}
 
-		for (int i = 0; i < words.size(); i++)
+		for (int i = 1; i < words.size(); i++)
 		{
 			string word = words[i];
 			string scale = "";
@@ -435,7 +430,6 @@ void loadChordScaleMapping(string filename)
 			else if (word.compare(",") == 0) continue;
 
 			else scale = word;
-			if (!isValidNoteString(scale)) scale = chordMap[word];
 			if (!isValidNoteString(scale)) scale = scaleMap[word];
 			if (!isValidNoteString(scale))
 			{
@@ -673,7 +667,7 @@ bool processOption(int argNumber)
 	
 }
 
-void loadChordMaps(string filename, map<string, string>* forwardMap, map<string, string>* reverseMap)
+void loadChordMap(string filename, map<string, string>* forwardMap, map<string, string>* reverseMap)
 {
 	string mostRecentNoteString = "";
 	vector<string> lines = getLines(filename);
@@ -724,8 +718,8 @@ void loadChordMaps(string filename, map<string, string>* forwardMap, map<string,
 
 void loadConfig() 
 {
-	loadChordMaps(CHORD_LIST_FILENAME, &chordMap, &reverseChordMap);
-	loadChordMaps(SCALE_LIST_FILENAME, &scaleMap, &reverseScaleMap);
+	loadChordMap(CHORD_LIST_FILENAME, &chordMap, &reverseChordMap);
+	loadChordMap(SCALE_LIST_FILENAME, &scaleMap, &reverseScaleMap);
 }
 
 string normalizeBrightness(string chord)
@@ -1514,88 +1508,6 @@ void setNote(int channel, int note, int velocity)
 	}
 }
 
-void handleDamperMessage(bool enable, int channel)
-{
-	if (enable)
-	{
-		if (damperActive[channel])
-		{
-			cerr << "WARNING: Received damper ON request, but damper is already active. Ignoring request." << endl;
-			return;
-		}
-
-		damperActive[channel] = true;
-
-		unsigned int size = activeNotes[channel].size();
-		for (int i = 0; i < size; i++)
-		{
-			int activeNote = activeNotes[channel][i];
-			activeNotes[channel].push_back(activeNote);
-			damperNotes[channel].push_back(activeNote);
-		}
-	}
-	else
-	{
-		if (!damperActive[channel])
-		{
-			cerr << "WARNING: Received damper OFF request, but damper is not currently active. Ignoring request." << endl;
-			return;
-		}
-
-		damperActive[channel] = false;
-
-		// Turn all damper notes off
-		for (int i = 0; i < damperNotes[channel].size(); i++)
-		{
-			int activeNote = damperNotes[channel][i];
-			setNote(channel, activeNote, 0); // turn note off
-		}	
-
-		damperNotes[channel].clear();
-	}
-}
-
-void handleSostenutoMessage(bool enable, int channel)
-{
-	if (enable)
-	{
-		if (sostenutoActive[channel])
-		{
-			cerr << "WARNING: Received sostenuto ON request, but sostenuto is already active. Ignoring request." << endl;
-			return;
-		}
-
-		sostenutoActive[channel] = true;
-
-		unsigned int size = activeNotes[channel].size();
-		for (int i = 0; i < size; i++)
-		{
-			int activeNote = activeNotes[channel][i];
-			activeNotes[channel].push_back(activeNote);
-			sostenutoNotes[channel].push_back(activeNote);
-		}
-	}
-	else
-	{
-		if (!sostenutoActive[channel])
-		{
-			cerr << "WARNING: Received sostenuto OFF request, but sostenuto is not currently active. Ignoring request." << endl;
-			return;
-		}
-
-		sostenutoActive[channel] = false;
-
-		// Turn all sostenuto notes off
-		for (int i = 0; i < sostenutoNotes[channel].size(); i++)
-		{
-			int activeNote = sostenutoNotes[channel][i];
-			setNote(channel, activeNote, 0); // turn note off
-		}	
-
-		sostenutoNotes[channel].clear();
-	}
-}
-
 string getScale(string chordScale)
 {
 	if (!isValidNoteString(chordScale))
@@ -1611,6 +1523,12 @@ string getScale(string chordScale)
 			key[i] = '1';
 	}
 
+	if (chordScaleMap.find(key) == chordScaleMap.end())
+	{
+		if (debugMode) cerr << "WARNING - getScale('" << chordScale << "'): no scale found. Returning empty." << endl;
+		return EMPTY_NOTE_STRING;
+	}
+
 	deque<string> scales = chordScaleMap[key];
 	string scale = scales.front();
 
@@ -1619,6 +1537,9 @@ string getScale(string chordScale)
 		if (chordScale[i] == '2')
 			scale[i] = '2';
 	}
+	
+	if (debugMode)
+		cout << "INFO - getScale('" << chordScale << "'): returned '" << scale << "'" << endl;
 
 	return scale;
 }
@@ -1641,18 +1562,35 @@ void setPriorityScale(string chord, string scale)
 			normalizedChord = '1';
 	}
 
+	string normalizedScale = EMPTY_NOTE_STRING;
+	for (int i = 0; i < scale.size(); i++)
+	{
+		if (scale[i] == '1' || scale[i] == '2')
+			normalizedScale = '1';
+	}
+
 	deque<string> scales = chordScaleMap[normalizedChord];
+	
 	
 	for (unsigned int i = 0; i < scales.size(); i++)
 	{
-		if (scales[i] == scale)
+		if (scales[i] == normalizedScale)
 		{
 			scales.erase(scales.begin()+i);
 			break;
 		}
 	}
 
-	scales.push_front(scale);
+	string scaleName = chordMap[normalizedScale];
+	if (scaleName.size() == 0) scaleName = scaleMap[normalizedScale];
+	if (scaleName.size() == 0)
+	{
+		if (debugMode) cerr << "WARNING - setPriorityScale('" << chord << "', '" << scale << "'): unrecognized scale. Ignoring..." << endl;
+		return;
+	}
+
+	scales.push_front(scaleName);
+	chordScaleMap[normalizedChord] = scales;
 }
 
 void activateRealtime(bool enable, int channel)
@@ -1675,10 +1613,19 @@ void activateRealtime(bool enable, int channel)
 			}
 		}
 
-		suggestedScale = getScale(activeChordScale);
-		setPriorityScale(activeChordScale, suggestedScale);
+		string suggestedScale = getScale(activeChordScale);
 
-		outputScale(suggestedScale);
+		if (EMPTY_NOTE_STRING.compare(suggestedScale) != 0 && activeSuggestedScale.compare(suggestedScale) != 0)
+		{
+			if (realtimeActive[channel])
+			{
+				setPriorityScale(activeChordScale, suggestedScale);
+				outputScale(EMPTY_NOTE_STRING);
+			}
+
+			activeSuggestedScale = suggestedScale;	
+			outputScale(suggestedScale);
+		}
 
 		realtimeActive[channel] = true;
 	}
@@ -1686,7 +1633,7 @@ void activateRealtime(bool enable, int channel)
 	{
 		realtimeActive[channel] = false;
 		activeChordScale = EMPTY_NOTE_STRING;
-		suggestedScale = EMPTY_NOTE_STRING;
+		activeSuggestedScale = EMPTY_NOTE_STRING;
 
 		outputScale(EMPTY_NOTE_STRING);
 	}
@@ -1698,7 +1645,7 @@ void handleActivateRealtimeMessage(bool enable, int channel)
 	{
 		if (realtimeActive[channel])
 		{
-			std::cerr << "WARNING: Received realtime ON request, but realtime is already active. Ignoring request." << std::endl;
+			if (debugMode) std::cerr << "WARNING: Received realtime ON request, but realtime is already active. Ignoring request." << std::endl;
 			return;	
 		}
 	}
@@ -1706,12 +1653,94 @@ void handleActivateRealtimeMessage(bool enable, int channel)
 	{
 		if (!realtimeActive[channel])
 		{
-			std::cerr << "WARNING: Received realtime OFF request, but realtime is not currently active. Ignoring request." << std::endl;
+			if (debugMode) std::cerr << "WARNING: Received realtime OFF request, but realtime is not currently active. Ignoring request." << std::endl;
 			return;
 		}
 	}
 
 	activateRealtime(enable, channel);
+}
+
+void handleDamperMessage(bool enable, int channel)
+{
+	if (enable)
+	{
+		if (damperActive[channel])
+		{
+			if (debugMode) cerr << "WARNING: Received damper ON request, but damper is already active. Ignoring request." << endl;
+			return;
+		}
+
+		damperActive[channel] = true;
+
+		unsigned int size = activeNotes[channel].size();
+		for (int i = 0; i < size; i++)
+		{
+			int activeNote = activeNotes[channel][i];
+			activeNotes[channel].push_back(activeNote);
+			damperNotes[channel].push_back(activeNote);
+		}
+	}
+	else
+	{
+		if (!damperActive[channel])
+		{
+			if (debugMode) cerr << "WARNING: Received damper OFF request, but damper is not currently active. Ignoring request." << endl;
+			return;
+		}
+
+		damperActive[channel] = false;
+
+		// Turn all damper notes off
+		for (int i = 0; i < damperNotes[channel].size(); i++)
+		{
+			int activeNote = damperNotes[channel][i];
+			setNote(channel, activeNote, 0); // turn note off
+		}	
+
+		damperNotes[channel].clear();
+	}
+}
+
+void handleSostenutoMessage(bool enable, int channel)
+{
+	if (enable)
+	{
+		if (sostenutoActive[channel])
+		{
+			if (debugMode) cerr << "WARNING: Received sostenuto ON request, but sostenuto is already active. Ignoring request." << endl;
+			return;
+		}
+
+		sostenutoActive[channel] = true;
+
+		unsigned int size = activeNotes[channel].size();
+		for (int i = 0; i < size; i++)
+		{
+			int activeNote = activeNotes[channel][i];
+			activeNotes[channel].push_back(activeNote);
+			sostenutoNotes[channel].push_back(activeNote);
+		}
+	}
+	else
+	{
+		if (!sostenutoActive[channel])
+		{
+			if (debugMode) cerr << "WARNING: Received sostenuto OFF request, but sostenuto is not currently active. Ignoring request." << endl;
+			return;
+		}
+
+		sostenutoActive[channel] = false;
+
+		// Turn all sostenuto notes off
+		for (int i = 0; i < sostenutoNotes[channel].size(); i++)
+		{
+			int activeNote = sostenutoNotes[channel][i];
+			setNote(channel, activeNote, 0); // turn note off
+		}	
+
+		sostenutoNotes[channel].clear();
+	}
 }
 
 void onMidiMessageReceived(double deltatime, std::vector<unsigned char>* message, void* userData)
@@ -1765,6 +1794,7 @@ void initializeRtMidi()
 {
 	damperActive = new bool[numChannels];
 	sostenutoActive = new bool[numChannels];
+	realtimeActive = new bool[numChannels];
 
 	midiIn = new RtMidiIn(RtMidi::Api::UNSPECIFIED, DEFAULT_RTMIDI_IN_NAME, 100);
 	midiIn->openVirtualPort();
@@ -1803,7 +1833,7 @@ void initialize(int argc, char** argv)
 	outputFilename = "";
 
 	activeChordScale = EMPTY_NOTE_STRING;
-	suggestedScale = EMPTY_NOTE_STRING;
+	activeSuggestedScale = EMPTY_NOTE_STRING;
 
 	loadConfig();
 	
@@ -1925,7 +1955,7 @@ void realtimeLoop()
 
 	}
 	cin.clear();
-	cout << "Received EOF." << endl;
+	cout << endl << "Received EOF." << endl;
 }
 
 string getFormattedTimestamp()

@@ -11,5 +11,5 @@ else
 endif
 
 all:
-	g++ -std=c++11 -Wall $(preprocessor-definition) main.cpp -o chordPROvisor -w -l midifile -l rtmidi $(sound-library) $(thread-library)
+	g++ -g -std=c++11 -Wall $(preprocessor-definition) main.cpp -o chordPROvisor -w -l midifile -l rtmidi $(sound-library) $(thread-library)
 	

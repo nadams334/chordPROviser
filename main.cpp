@@ -80,7 +80,7 @@ const unsigned char ccStatusCodeMax = (unsigned char)0xBF;
 const int cc_damper = 64;
 const int cc_sostenuto = 66;
 
-const int cc_activate_realtime = /*cc_sostenuto*/32;
+const int cc_activate_realtime = /*cc_sostenuto*/29;
 
 bool* damperActive;
 bool* sostenutoActive;
@@ -1174,7 +1174,7 @@ void addNoteMessage(int channel, int noteIndex, int noteBrightness, int ticks)
 			midiOutputFile.addEvent(channel, ticks, noteMessage);
 		}
 		
-		if (debugMode)
+		if (debugMode && false)
 		{
 			cout << "Created the following note message with the following parameters:" << endl;
 			cout << "Channel: " << channel << " | Note Index: " << noteIndex << " | Note Brightness: " << noteBrightness << " | Ticks: " << ticks << endl;
@@ -1269,7 +1269,7 @@ void addUpdateMessage(int ticks)
 		midiOutputFile.addEvent(channel, ticks, updateMessage);
 	}
 		
-	if (debugMode)
+	if (debugMode && false)
 	{
 		cout << "Created the following update message with the following parameters:" << endl;
 		cout << "Ticks: " << ticks << endl;
@@ -1303,7 +1303,7 @@ void addUpdateMessage(int ticks, int channel)
 		midiOutputFile.addEvent(channel, ticks, updateMessage);
 	}
 		
-	if (debugMode)
+	if (debugMode && false)
 	{
 		cout << "Created the following update message with the following parameters:" << endl;
 		cout << "Ticks: " << ticks << endl;
@@ -1555,22 +1555,40 @@ void outputScale(string scale)
 
 void setPriorityScale(string chord, string scale)
 {
+	if (debugMode) cout << "INFO - setPriorityScale('" << chord << "', '" << scale << "')" << endl;
+
+	if (!isValidNoteString(chord))
+	{
+		if (debugMode) cerr << "WARNING - setPriorityScale('" << chord << "', '" << scale << "'): parameter 1 is not a valid chord. Ignoring..." << endl;
+		return;
+	}
+
+	if (!isValidNoteString(scale))
+	{
+		if (debugMode) cerr << "WARNING - setPriorityScale('" << chord << "', '" << scale << "'): parameter 2 is not a valid scale. Ignoring..." << endl;
+		return;
+	}	
+
 	string normalizedChord = EMPTY_NOTE_STRING;
 	for (int i = 0; i < chord.size(); i++)
 	{
-		if (chord[i] == '1' || chord[i] == '2')
-			normalizedChord = '1';
+		if (chord[i] == '2')
+			normalizedChord[i] = '1';
 	}
 
 	string normalizedScale = EMPTY_NOTE_STRING;
 	for (int i = 0; i < scale.size(); i++)
 	{
 		if (scale[i] == '1' || scale[i] == '2')
-			normalizedScale = '1';
+			normalizedScale[i] = '1';
 	}
 
+	if (chordScaleMap.find(normalizedChord) == chordScaleMap.end())
+	{
+		if (debugMode) cerr << "WARNING - setPriorityScale('" << chord << "', '" << scale << "'): normalized chord '" << normalizedChord << "' not found. Ignoring..." << endl;
+		return;
+	}
 	deque<string> scales = chordScaleMap[normalizedChord];
-	
 	
 	for (unsigned int i = 0; i < scales.size(); i++)
 	{
@@ -1581,8 +1599,8 @@ void setPriorityScale(string chord, string scale)
 		}
 	}
 
-	string scaleName = chordMap[normalizedScale];
-	if (scaleName.size() == 0) scaleName = scaleMap[normalizedScale];
+	string scaleName = reverseChordMap[normalizedScale];
+	if (scaleName.size() == 0) scaleName = reverseScaleMap[normalizedScale];
 	if (scaleName.size() == 0)
 	{
 		if (debugMode) cerr << "WARNING - setPriorityScale('" << chord << "', '" << scale << "'): unrecognized scale. Ignoring..." << endl;
@@ -1795,6 +1813,13 @@ void initializeRtMidi()
 	damperActive = new bool[numChannels];
 	sostenutoActive = new bool[numChannels];
 	realtimeActive = new bool[numChannels];
+
+	for (int i = 0; i < numChannels; i++)
+	{
+		damperActive[i] = false;
+		sostenutoActive[i] = false;
+		realtimeActive[i] = false;
+	}
 
 	midiIn = new RtMidiIn(RtMidi::Api::UNSPECIFIED, DEFAULT_RTMIDI_IN_NAME, 100);
 	midiIn->openVirtualPort();

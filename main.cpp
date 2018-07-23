@@ -1599,15 +1599,7 @@ void setPriorityScale(string chord, string scale)
 		}
 	}
 
-	string scaleName = reverseChordMap[normalizedScale];
-	if (scaleName.size() == 0) scaleName = reverseScaleMap[normalizedScale];
-	if (scaleName.size() == 0)
-	{
-		if (debugMode) cerr << "WARNING - setPriorityScale('" << chord << "', '" << scale << "'): unrecognized scale. Ignoring..." << endl;
-		return;
-	}
-
-	scales.push_front(scaleName);
+	scales.push_front(normalizedScale);
 	chordScaleMap[normalizedChord] = scales;
 }
 

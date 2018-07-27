@@ -41,12 +41,13 @@ const int NOTES_PER_OCTAVE = 12;
 const int STARTING_OCTAVE = 3;
 const int ENDING_OCTAVE = 8;
 const int NUM_CHANNELS = 4;
-const int REALTIME_CHANNEL = 0 - 1;
-const int ODD_CHORD_CHANNEL = 1 - 1;
-const int EVEN_CHORD_CHANNEL = 2 - 1;
-const int MIXED_CHORD_CHANNEL = 3 - 1;
-const int BASS_NOTE_CHANNEL = 4 - 1;
 const int STARTING_CHANNEL = 11 - 1;
+const int ODD_CHORD_CHANNEL = 1 - 1; // MIDI channel 11
+const int EVEN_CHORD_CHANNEL = 2 - 1; // MIDI channel 12
+const int MIXED_CHORD_CHANNEL = 3 - 1; // MIDI channel 13
+const int BASS_NOTE_CHANNEL = 4 - 1; // MIDI channel 14
+const int REALTIME_CHANNEL = 5 - 1; // MIDI channel 15
+const int REALTIME_BASS_NOTE_CHANNEL = 6 - 1; // MIDI channel 16
 
 vector<string> noteProgressionByChannel[NUM_CHANNELS];
 vector<int> chordChanges; // a list of every beat (zero-based) where a chord changes occurs
@@ -831,10 +832,12 @@ int getNoteIndex(string note)
 	}
 	else
 	{
-		stringstream ss;
-		ss << "WARNING: Unrecoginized note: '" << note << "'";
-		cerr << ss.str() << endl;
-		errorStatus = 3;
+		if (debugMode)
+		{
+			stringstream ss;
+			ss << "WARNING - getNoteIndex(): Unrecoginized note: '" << note << "'";
+			cout << ss.str() << endl;
+		}
 		return -1;
 	}
 }
@@ -878,7 +881,7 @@ string transposeScale(string scale, string fromRoot, string toRoot)
 	}
 	else
 	{
-		cerr << "ERROR - [transposeScale]: One or both root notes unrecognized: " << endl;
+		cerr << "ERROR - transposeScale(): One or both root notes unrecognized: " << endl;
 		cerr << "fromRoot: " << fromRoot << endl;
 		cerr << "toRoot: " << toRoot << endl;
 		cerr << "scale: " << scale << endl;
@@ -900,11 +903,13 @@ string addBassNoteToScale(string scale, string bassNote)
 	}
 	else
 	{
-		cerr << "ERROR - [addBassNoteToScale]: Bass note unrecognized: " << endl;
-		cerr << "bassNote: " << bassNote << endl;
-		cerr << "scale: " << scale << endl;
-		cerr << "No modification will be done." << endl;
-		errorStatus = 3;
+		if (debugMode)
+		{
+			cerr << "WARNING - addBassNoteToScale(): Bass note unrecognized: " << endl;
+			cerr << "bassNote: " << bassNote << endl;
+			cerr << "scale: " << scale << endl;
+			cerr << "No modification will be done." << endl;
+		}
 	}
 
 	return scale;
@@ -1174,7 +1179,7 @@ void addNoteMessage(int channel, int noteIndex, int noteBrightness, int ticks)
 			midiOutputFile.addEvent(channel, ticks, noteMessage);
 		}
 		
-		if (debugMode && false)
+		if (debugMode)
 		{
 			cout << "Created the following note message with the following parameters:" << endl;
 			cout << "Channel: " << channel << " | Note Index: " << noteIndex << " | Note Brightness: " << noteBrightness << " | Ticks: " << ticks << endl;
@@ -1269,7 +1274,7 @@ void addUpdateMessage(int ticks)
 		midiOutputFile.addEvent(channel, ticks, updateMessage);
 	}
 		
-	if (debugMode && false)
+	if (debugMode)
 	{
 		cout << "Created the following update message with the following parameters:" << endl;
 		cout << "Ticks: " << ticks << endl;
@@ -1303,7 +1308,7 @@ void addUpdateMessage(int ticks, int channel)
 		midiOutputFile.addEvent(channel, ticks, updateMessage);
 	}
 		
-	if (debugMode && false)
+	if (debugMode)
 	{
 		cout << "Created the following update message with the following parameters:" << endl;
 		cout << "Ticks: " << ticks << endl;
@@ -1548,8 +1553,22 @@ void outputScale(string scale)
 {
 	for (int i = 0; i < scale.size(); i++)
 	{
-		addNoteMessage(REALTIME_CHANNEL, i, scale[i] - '0', -1);
+		int channel = REALTIME_CHANNEL;
+		int intensity = scale[i] - '0';
+		
+		if (scale[i] == '3')
+		{
+			intensity = 2;
+
+			if (indicateBass)
+			{
+				channel = REALTIME_BASS_NOTE_CHANNEL;
+			}
+		}
+
+		addNoteMessage(channel, i, intensity, -1);
 	}
+
 	addUpdateMessage(-1);
 }
 

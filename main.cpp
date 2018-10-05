@@ -1,4 +1,4 @@
-// chordPROviser
+// chordPROvisor
 // Author: Nathan Adams
 // 2016-2018
 

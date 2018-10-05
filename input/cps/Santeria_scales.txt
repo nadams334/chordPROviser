@@ -1,0 +1,69 @@
+
+Session: Santeria.cps
+
+Folder: C:\Users\Nathan\Documents\chord_pulse\
+
+Style: Reggae
+
+Tempo: 90 BPM
+
+--------------------------------------------------
+
+Chords:
+
+
+
+| E_'major . . . | Ab_'mixolydian-b13 . . . | Dbm_'minor . . . | B_'mixolydian . . . |
+
+
+
+| E_'major . . . | Ab_'mixolydian-b13 . . . | Dbm_'minor . . . | B_'mixolydian . . . |
+
+| E_'major . . . | Ab_'mixolydian-b13 . . . | Dbm_'minor . . . | B_'mixolydian . . . |
+
+
+
+| A_'lydian . B_'mixolydian . | E_'major Ebm_'phrygian Dbm_'minor . | A_'lydian . B_'mixolydian . | E_'major Ebm_'phrygian Dbm_'minor . |
+
+| A_'lydian . B_'mixolydian . | E_'major Ebm_'phrygian Dbm_'minor . | A_'lydian . B_'mixolydian . |
+
+
+
+| E_'major . . . | Ab_'mixolydian-b13 . . . | Dbm_'minor . . . | B_'mixolydian . . . |
+
+| E_'major . . . | Ab_'mixolydian-b13 . . . | Dbm_'minor . . . | B_'mixolydian . . . |
+
+
+
+| A_'lydian . B_'mixolydian . | E_'major Ebm_'phrygian Dbm_'minor . | A_'lydian . B_'mixolydian . | E_'major Ebm_'phrygian Dbm_'minor . |
+
+| A_'lydian . B_'mixolydian . | E_'major Ebm_'phrygian Dbm_'minor . | A_'lydian . B_'mixolydian . |
+
+
+
+| E_'major . . . | Ab_'mixolydian-b13 . . . | Dbm_'minor . . . | B_'mixolydian . . . |
+
+| E_'major . . . | Ab_'mixolydian-b13 . . . | Dbm_'minor . . . | B_'mixolydian . . . |
+
+
+
+| A_'lydian . B_'mixolydian . | E_'major Ebm_'phrygian Dbm_'minor . | A_'lydian . B_'mixolydian . | E_'major Ebm_'phrygian Dbm_'minor . |
+
+| A_'lydian . B_'mixolydian . | E_'major Ebm_'phrygian Dbm_'minor . | A_'lydian . B_'mixolydian . |
+
+
+
+| E_'major . . . | Ab_'mixolydian-b13 . . . | Dbm_'minor . . . | B_'mixolydian . . . |
+
+| E_'major . . . | Ab_'mixolydian-b13 . . . | Dbm_'minor . . . | B_'mixolydian . . . |
+
+
+
+| A_'lydian . B_'mixolydian . | E_'major Ebm_'phrygian Dbm_'minor . | A_'lydian . B_'mixolydian . | E_'major Ebm_'phrygian Dbm_'minor . |
+
+| A_'lydian . B_'mixolydian . | E_'major Ebm_'phrygian Dbm_'minor . | A_'lydian . B_'mixolydian . |
+
+
+
+| E_'major Ebm_'phrygian Dbm_'minor B_'mixolydian  | A_'lydian B_'mixolydian . . | E7_'mixolydian . . . | . . . . |
+

@@ -1,0 +1,69 @@
+
+Session: Santeria.cps
+
+Folder: C:\Users\Nathan\Documents\chord_pulse\
+
+Style: Reggae
+
+Tempo: 90 BPM
+
+--------------------------------------------------
+
+Chords:
+
+
+
+| E . . . | Ab . . . | Dbm . . . | B . . . |
+
+
+
+| E . . . | Ab . . . | Dbm . . . | B . . . |
+
+| E . . . | Ab . . . | Dbm . . . | B . . . |
+
+
+
+| A . B . | E Ebm Dbm . | A . B . | E Ebm Dbm . |
+
+| A . B . | E Ebm Dbm . | A . B . |
+
+
+
+| E . . . | Ab . . . | Dbm . . . | B . . . |
+
+| E . . . | Ab . . . | Dbm . . . | B . . . |
+
+
+
+| A . B . | E Ebm Dbm . | A . B . | E Ebm Dbm . |
+
+| A . B . | E Ebm Dbm . | A . B . |
+
+
+
+| E . . . | Ab . . . | Dbm . . . | B . . . |
+
+| E . . . | Ab . . . | Dbm . . . | B . . . |
+
+
+
+| A . B . | E Ebm Dbm . | A . B . | E Ebm Dbm . |
+
+| A . B . | E Ebm Dbm . | A . B . |
+
+
+
+| E . . . | Ab . . . | Dbm . . . | B . . . |
+
+| E . . . | Ab . . . | Dbm . . . | B . . . |
+
+
+
+| A . B . | E Ebm Dbm . | A . B . | E Ebm Dbm . |
+
+| A . B . | E Ebm Dbm . | A . B . |
+
+
+
+| E Ebm Dbm B  | A B . . | E7 . . . | . . . . |
+

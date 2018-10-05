@@ -215,9 +215,13 @@ v0	ff 2f v0	; end-of-track
 
 ;;; TRACK 1 ----------------------------------
 "MTrk"			; MIDI track chunk marker
-4'767			; bytes to follow in track chunk
+4'831			; bytes to follow in track chunk
 v0	ff 51 v3 t120	; tempo
-v1534	8b '95 '0	; note-off B6
+v2	bb '31 '127	; controller
+v6	bb '31 '127	; controller
+v1146	bb '31 '127	; controller
+v192	bb '31 '127	; controller
+v188	8b '95 '0	; note-off B6
 v0	8b '83 '0	; note-off B5
 v0	8b '71 '0	; note-off B4
 v0	8b '59 '0	; note-off B3
@@ -278,7 +282,10 @@ v0	9b '80 '80	; note-on G#5
 v0	9b '68 '80	; note-on G#4
 v0	9b '56 '80	; note-on G#3
 v0	9b '44 '80	; note-on G#2
-v1536	8b '95 '0	; note-off B6
+v4	bb '31 '127	; controller
+v1152	bb '31 '127	; controller
+v192	bb '31 '127	; controller
+v188	8b '95 '0	; note-off B6
 v0	8b '83 '0	; note-off B5
 v0	8b '71 '0	; note-off B4
 v0	8b '59 '0	; note-off B3
@@ -339,7 +346,10 @@ v0	8b '72 '0	; note-off C5
 v0	8b '60 '0	; note-off C4
 v0	8b '48 '0	; note-off C3
 v0	8b '36 '0	; note-off C2
-v1536	8b '95 '0	; note-off B6
+v4	bb '31 '127	; controller
+v1152	bb '31 '127	; controller
+v192	bb '31 '127	; controller
+v188	8b '95 '0	; note-off B6
 v0	8b '83 '0	; note-off B5
 v0	8b '71 '0	; note-off B4
 v0	8b '59 '0	; note-off B3
@@ -400,18 +410,27 @@ v0	9b '79 '8	; note-on G5
 v0	9b '67 '8	; note-on G4
 v0	9b '55 '8	; note-on G3
 v0	9b '43 '8	; note-on G2
-v1536	8b '91 '0	; note-off G6
+v4	bb '31 '127	; controller
+v1152	bb '31 '127	; controller
+v192	bb '31 '127	; controller
+v188	8b '91 '0	; note-off G6
 v0	8b '79 '0	; note-off G5
 v0	8b '67 '0	; note-off G4
 v0	8b '55 '0	; note-off G3
 v0	8b '43 '0	; note-off G2
+v2	bb '31 '127	; controller
 v0	ff 2f v0	; end-of-track
 
 ;;; TRACK 2 ----------------------------------
 "MTrk"			; MIDI track chunk marker
-4'1253			; bytes to follow in track chunk
+4'1293			; bytes to follow in track chunk
 v0	ff 51 v3 t120	; tempo
-v2	9c '93 '80	; note-on A6
+v2	9c '95 '80	; note-on B6
+v0	9c '83 '80	; note-on B5
+v0	9c '71 '80	; note-on B4
+v0	9c '59 '80	; note-on B3
+v0	9c '47 '80	; note-on B2
+v0	9c '93 '80	; note-on A6
 v0	9c '81 '80	; note-on A5
 v0	9c '69 '80	; note-on A4
 v0	9c '57 '80	; note-on A3
@@ -481,11 +500,6 @@ v0	8c '77 '0	; note-off F5
 v0	8c '65 '0	; note-off F4
 v0	8c '53 '0	; note-off F3
 v0	8c '41 '0	; note-off F2
-v0	8c '88 '0	; note-off E6
-v0	8c '76 '0	; note-off E5
-v0	8c '64 '0	; note-off E4
-v0	8c '52 '0	; note-off E3
-v0	8c '40 '0	; note-off E2
 v0	8c '87 '0	; note-off D#6
 v0	8c '75 '0	; note-off D#5
 v0	8c '63 '0	; note-off D#4
@@ -512,6 +526,11 @@ v0	9c '78 '8	; note-on F#5
 v0	9c '66 '8	; note-on F#4
 v0	9c '54 '8	; note-on F#3
 v0	9c '42 '8	; note-on F#2
+v0	9c '88 '80	; note-on E6
+v0	9c '76 '80	; note-on E5
+v0	9c '64 '80	; note-on E4
+v0	9c '52 '80	; note-on E3
+v0	9c '40 '80	; note-on E2
 v0	9c '86 '80	; note-on D6
 v0	9c '74 '80	; note-on D5
 v0	9c '62 '80	; note-on D4
@@ -532,11 +551,6 @@ v0	8c '80 '0	; note-off G#5
 v0	8c '68 '0	; note-off G#4
 v0	8c '56 '0	; note-off G#3
 v0	8c '44 '0	; note-off G#2
-v0	8c '91 '0	; note-off G6
-v0	8c '79 '0	; note-off G5
-v0	8c '67 '0	; note-off G4
-v0	8c '55 '0	; note-off G3
-v0	8c '43 '0	; note-off G2
 v0	8c '89 '0	; note-off F6
 v0	8c '77 '0	; note-off F5
 v0	8c '65 '0	; note-off F4
@@ -563,6 +577,11 @@ v0	9c '81 '8	; note-on A5
 v0	9c '69 '8	; note-on A4
 v0	9c '57 '8	; note-on A3
 v0	9c '45 '8	; note-on A2
+v0	9c '91 '80	; note-on G6
+v0	9c '79 '80	; note-on G5
+v0	9c '67 '80	; note-on G4
+v0	9c '55 '80	; note-on G3
+v0	9c '43 '80	; note-on G2
 v0	9c '90 '8	; note-on F#6
 v0	9c '78 '8	; note-on F#5
 v0	9c '66 '8	; note-on F#4
@@ -628,11 +647,6 @@ v0	8c '79 '0	; note-off G5
 v0	8c '67 '0	; note-off G4
 v0	8c '55 '0	; note-off G3
 v0	8c '43 '0	; note-off G2
-v0	8c '90 '0	; note-off F#6
-v0	8c '78 '0	; note-off F#5
-v0	8c '66 '0	; note-off F#4
-v0	8c '54 '0	; note-off F#3
-v0	8c '42 '0	; note-off F#2
 v0	8c '89 '0	; note-off F6
 v0	8c '77 '0	; note-off F5
 v0	8c '65 '0	; note-off F4
@@ -659,6 +673,11 @@ v0	9c '81 '80	; note-on A5
 v0	9c '69 '80	; note-on A4
 v0	9c '57 '80	; note-on A3
 v0	9c '45 '80	; note-on A2
+v0	9c '90 '80	; note-on F#6
+v0	9c '78 '80	; note-on F#5
+v0	9c '66 '80	; note-on F#4
+v0	9c '54 '80	; note-on F#3
+v0	9c '42 '80	; note-on F#2
 v0	9c '88 '8	; note-on E6
 v0	9c '76 '8	; note-on E5
 v0	9c '64 '8	; note-on E4
@@ -704,6 +723,11 @@ v0	8c '81 '0	; note-off A5
 v0	8c '69 '0	; note-off A4
 v0	8c '57 '0	; note-off A3
 v0	8c '45 '0	; note-off A2
+v0	8c '90 '0	; note-off F#6
+v0	8c '78 '0	; note-off F#5
+v0	8c '66 '0	; note-off F#4
+v0	8c '54 '0	; note-off F#3
+v0	8c '42 '0	; note-off F#2
 v0	8c '88 '0	; note-off E6
 v0	8c '76 '0	; note-off E5
 v0	8c '64 '0	; note-off E4
@@ -723,213 +747,6 @@ v0	ff 2f v0	; end-of-track
 
 ;;; TRACK 3 ----------------------------------
 "MTrk"			; MIDI track chunk marker
-4'851			; bytes to follow in track chunk
+4'11			; bytes to follow in track chunk
 v0	ff 51 v3 t120	; tempo
-v2	bd '31 '127	; controller
-v0	9d '95 '80	; note-on B6
-v0	9d '83 '80	; note-on B5
-v0	9d '71 '80	; note-on B4
-v0	9d '59 '80	; note-on B3
-v0	9d '47 '80	; note-on B2
-v6	bd '31 '127	; controller
-v1146	bd '31 '127	; controller
-v192	bd '31 '127	; controller
-v188	8d '95 '0	; note-off B6
-v0	8d '83 '0	; note-off B5
-v0	8d '71 '0	; note-off B4
-v0	8d '59 '0	; note-off B3
-v0	8d '47 '0	; note-off B2
-v0	8d '94 '0	; note-off A#6
-v0	8d '82 '0	; note-off A#5
-v0	8d '70 '0	; note-off A#4
-v0	8d '58 '0	; note-off A#3
-v0	8d '46 '0	; note-off A#2
-v0	8d '93 '0	; note-off A6
-v0	8d '81 '0	; note-off A5
-v0	8d '69 '0	; note-off A4
-v0	8d '57 '0	; note-off A3
-v0	8d '45 '0	; note-off A2
-v0	8d '92 '0	; note-off G#6
-v0	8d '80 '0	; note-off G#5
-v0	8d '68 '0	; note-off G#4
-v0	8d '56 '0	; note-off G#3
-v0	8d '44 '0	; note-off G#2
-v0	8d '91 '0	; note-off G6
-v0	8d '79 '0	; note-off G5
-v0	8d '67 '0	; note-off G4
-v0	8d '55 '0	; note-off G3
-v0	8d '43 '0	; note-off G2
-v0	8d '90 '0	; note-off F#6
-v0	8d '78 '0	; note-off F#5
-v0	8d '66 '0	; note-off F#4
-v0	8d '54 '0	; note-off F#3
-v0	8d '42 '0	; note-off F#2
-v0	8d '89 '0	; note-off F6
-v0	8d '77 '0	; note-off F5
-v0	8d '65 '0	; note-off F4
-v0	8d '53 '0	; note-off F3
-v0	8d '41 '0	; note-off F2
-v0	8d '87 '0	; note-off D#6
-v0	8d '75 '0	; note-off D#5
-v0	8d '63 '0	; note-off D#4
-v0	8d '51 '0	; note-off D#3
-v0	8d '39 '0	; note-off D#2
-v0	8d '86 '0	; note-off D6
-v0	8d '74 '0	; note-off D5
-v0	8d '62 '0	; note-off D4
-v0	8d '50 '0	; note-off D3
-v0	8d '38 '0	; note-off D2
-v0	8d '85 '0	; note-off C#6
-v0	8d '73 '0	; note-off C#5
-v0	8d '61 '0	; note-off C#4
-v0	8d '49 '0	; note-off C#3
-v0	8d '37 '0	; note-off C#2
-v0	8d '96 '0	; note-off C7
-v0	8d '84 '0	; note-off C6
-v0	8d '72 '0	; note-off C5
-v0	8d '60 '0	; note-off C4
-v0	8d '48 '0	; note-off C3
-v0	8d '36 '0	; note-off C2
-v0	9d '88 '80	; note-on E6
-v0	9d '76 '80	; note-on E5
-v0	9d '64 '80	; note-on E4
-v0	9d '52 '80	; note-on E3
-v0	9d '40 '80	; note-on E2
-v4	bd '31 '127	; controller
-v1152	bd '31 '127	; controller
-v192	bd '31 '127	; controller
-v188	8d '95 '0	; note-off B6
-v0	8d '83 '0	; note-off B5
-v0	8d '71 '0	; note-off B4
-v0	8d '59 '0	; note-off B3
-v0	8d '47 '0	; note-off B2
-v0	8d '94 '0	; note-off A#6
-v0	8d '82 '0	; note-off A#5
-v0	8d '70 '0	; note-off A#4
-v0	8d '58 '0	; note-off A#3
-v0	8d '46 '0	; note-off A#2
-v0	8d '93 '0	; note-off A6
-v0	8d '81 '0	; note-off A5
-v0	8d '69 '0	; note-off A4
-v0	8d '57 '0	; note-off A3
-v0	8d '45 '0	; note-off A2
-v0	8d '92 '0	; note-off G#6
-v0	8d '80 '0	; note-off G#5
-v0	8d '68 '0	; note-off G#4
-v0	8d '56 '0	; note-off G#3
-v0	8d '44 '0	; note-off G#2
-v0	8d '90 '0	; note-off F#6
-v0	8d '78 '0	; note-off F#5
-v0	8d '66 '0	; note-off F#4
-v0	8d '54 '0	; note-off F#3
-v0	8d '42 '0	; note-off F#2
-v0	8d '89 '0	; note-off F6
-v0	8d '77 '0	; note-off F5
-v0	8d '65 '0	; note-off F4
-v0	8d '53 '0	; note-off F3
-v0	8d '41 '0	; note-off F2
-v0	8d '88 '0	; note-off E6
-v0	8d '76 '0	; note-off E5
-v0	8d '64 '0	; note-off E4
-v0	8d '52 '0	; note-off E3
-v0	8d '40 '0	; note-off E2
-v0	8d '87 '0	; note-off D#6
-v0	8d '75 '0	; note-off D#5
-v0	8d '63 '0	; note-off D#4
-v0	8d '51 '0	; note-off D#3
-v0	8d '39 '0	; note-off D#2
-v0	8d '86 '0	; note-off D6
-v0	8d '74 '0	; note-off D5
-v0	8d '62 '0	; note-off D4
-v0	8d '50 '0	; note-off D3
-v0	8d '38 '0	; note-off D2
-v0	8d '85 '0	; note-off C#6
-v0	8d '73 '0	; note-off C#5
-v0	8d '61 '0	; note-off C#4
-v0	8d '49 '0	; note-off C#3
-v0	8d '37 '0	; note-off C#2
-v0	8d '96 '0	; note-off C7
-v0	8d '84 '0	; note-off C6
-v0	8d '72 '0	; note-off C5
-v0	8d '60 '0	; note-off C4
-v0	8d '48 '0	; note-off C3
-v0	8d '36 '0	; note-off C2
-v0	9d '91 '80	; note-on G6
-v0	9d '79 '80	; note-on G5
-v0	9d '67 '80	; note-on G4
-v0	9d '55 '80	; note-on G3
-v0	9d '43 '80	; note-on G2
-v4	bd '31 '127	; controller
-v1152	bd '31 '127	; controller
-v192	bd '31 '127	; controller
-v188	8d '95 '0	; note-off B6
-v0	8d '83 '0	; note-off B5
-v0	8d '71 '0	; note-off B4
-v0	8d '59 '0	; note-off B3
-v0	8d '47 '0	; note-off B2
-v0	8d '94 '0	; note-off A#6
-v0	8d '82 '0	; note-off A#5
-v0	8d '70 '0	; note-off A#4
-v0	8d '58 '0	; note-off A#3
-v0	8d '46 '0	; note-off A#2
-v0	8d '93 '0	; note-off A6
-v0	8d '81 '0	; note-off A5
-v0	8d '69 '0	; note-off A4
-v0	8d '57 '0	; note-off A3
-v0	8d '45 '0	; note-off A2
-v0	8d '92 '0	; note-off G#6
-v0	8d '80 '0	; note-off G#5
-v0	8d '68 '0	; note-off G#4
-v0	8d '56 '0	; note-off G#3
-v0	8d '44 '0	; note-off G#2
-v0	8d '91 '0	; note-off G6
-v0	8d '79 '0	; note-off G5
-v0	8d '67 '0	; note-off G4
-v0	8d '55 '0	; note-off G3
-v0	8d '43 '0	; note-off G2
-v0	8d '89 '0	; note-off F6
-v0	8d '77 '0	; note-off F5
-v0	8d '65 '0	; note-off F4
-v0	8d '53 '0	; note-off F3
-v0	8d '41 '0	; note-off F2
-v0	8d '88 '0	; note-off E6
-v0	8d '76 '0	; note-off E5
-v0	8d '64 '0	; note-off E4
-v0	8d '52 '0	; note-off E3
-v0	8d '40 '0	; note-off E2
-v0	8d '87 '0	; note-off D#6
-v0	8d '75 '0	; note-off D#5
-v0	8d '63 '0	; note-off D#4
-v0	8d '51 '0	; note-off D#3
-v0	8d '39 '0	; note-off D#2
-v0	8d '86 '0	; note-off D6
-v0	8d '74 '0	; note-off D5
-v0	8d '62 '0	; note-off D4
-v0	8d '50 '0	; note-off D3
-v0	8d '38 '0	; note-off D2
-v0	8d '85 '0	; note-off C#6
-v0	8d '73 '0	; note-off C#5
-v0	8d '61 '0	; note-off C#4
-v0	8d '49 '0	; note-off C#3
-v0	8d '37 '0	; note-off C#2
-v0	8d '96 '0	; note-off C7
-v0	8d '84 '0	; note-off C6
-v0	8d '72 '0	; note-off C5
-v0	8d '60 '0	; note-off C4
-v0	8d '48 '0	; note-off C3
-v0	8d '36 '0	; note-off C2
-v0	9d '90 '80	; note-on F#6
-v0	9d '78 '80	; note-on F#5
-v0	9d '66 '80	; note-on F#4
-v0	9d '54 '80	; note-on F#3
-v0	9d '42 '80	; note-on F#2
-v4	bd '31 '127	; controller
-v1152	bd '31 '127	; controller
-v192	bd '31 '127	; controller
-v188	8d '90 '0	; note-off F#6
-v0	8d '78 '0	; note-off F#5
-v0	8d '66 '0	; note-off F#4
-v0	8d '54 '0	; note-off F#3
-v0	8d '42 '0	; note-off F#2
-v2	bd '31 '127	; controller
 v0	ff 2f v0	; end-of-track

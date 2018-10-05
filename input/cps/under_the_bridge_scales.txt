@@ -9,5 +9,5 @@ Tempo: 65 BPM
 
 Chords:
 
-| DM7_'lydian . . . | F#6_'ionian . . . |
+| DM7_'lydian . . . | F#6_'mixolydian . . . |
 

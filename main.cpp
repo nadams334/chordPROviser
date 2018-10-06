@@ -5,6 +5,7 @@
 #include <bitset>
 #include <cmath>
 #include <ctime>
+#include <cstdlib>
 #include <string>
 #include <stdio.h>
 #include <stdint.h>
@@ -1641,7 +1642,11 @@ string getScale(string chordScale)
 	}
 
 	deque<string> scales = chordScaleMap[key];
-	string scale = scales.front();
+	//string scale = scales.front();
+
+	// pick random scale
+	int randomChoice = rand() % scales.size();
+	string scale = scales[randomChoice];
 
 	for (int i = 0; i < chordScale.size(); i++)
 	{
@@ -1680,6 +1685,7 @@ void outputScale(string scale)
 
 void setPriorityScale(string chord, string scale)
 {
+	return;
 	if (debugMode) cout << "INFO - setPriorityScale('" << chord << "', '" << scale << "')" << endl;
 
 	if (!isValidNoteString(chord))
@@ -1895,7 +1901,7 @@ void onMidiMessageReceived(double deltatime, std::vector<unsigned char>* message
 
 		if (message->at(2) > 0 && realtimeMode && realtimeActive[channel])
 		{
-			activateRealtime(true, channel);
+			//activateRealtime(true, channel);
 		}
 	}	
 	else if (code >= noteOffCodeMin && code <= noteOffCodeMax)
@@ -2177,7 +2183,7 @@ int main(int argc, char** argv)
 
 		cout << endl;
 
-		wouldYouLikeToSave();
+		//wouldYouLikeToSave();
 
 		cout << endl;
 

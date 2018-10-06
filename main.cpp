@@ -2,6 +2,8 @@
 // Author: Nathan Adams
 // 2016-2018
 
+#include <bitset>
+#include <cmath>
 #include <ctime>
 #include <string>
 #include <stdio.h>
@@ -151,6 +153,9 @@ const string CHORDS_ONLY_OPTION = "-c";
 
 const string EMPTY_NOTE_STRING = "000000000000";
 
+const int MIN_CHORD_SIZE = 3;
+const int MAX_CHORD_SIZE = 7;
+
 
 void end(int status)
 {
@@ -169,6 +174,15 @@ string copyString(string str)
 	}
 	
 	return copiedString;
+}
+
+string shiftStringRight(string str, int offset)
+{
+	string rotatedStr = copyString(str);
+	
+	rotate(rotatedStr.rbegin(), rotatedStr.rbegin()+offset, rotatedStr.rend());
+	//cout << "Original string: '" << str << "' Rotated string: '" << rotatedStr << "' with offset of " << offset << endl;
+	return rotatedStr;
 }
 
 string boolToText(bool b)
@@ -356,8 +370,8 @@ string getChordScaleMappingString()
 	for (it = chordScaleMap.begin(); it != chordScaleMap.end(); it++)
 	{
 		string chord = it->first;
-		string chordName = reverseChordMap[chord];
-		if (chordName.size() > 0) chord = chordName;
+		//string chordName = reverseChordMap[chord];
+		//if (chordName.size() > 0) chord = chordName;
 
 		deque<string> scales = it->second;
 
@@ -365,8 +379,8 @@ string getChordScaleMappingString()
 		for (int i = 0; i < scales.size(); i++)
 		{
 			string scale = scales[i];
-			string scaleName = reverseScaleMap[scale];
-			if (scaleName.size() > 0) scale = scaleName;
+			//string scaleName = reverseScaleMap[scale];
+			//if (scaleName.size() > 0) scale = scaleName;
 
 			scalesString += scale;
 			scalesString += " , ";
@@ -389,9 +403,110 @@ void writeChordScaleMapping(string filename)
 	chordScaleMappingFile.close();
 }
 
+// Only C-root chords
+vector<string> generateAllChordsOfSize(int n)
+{
+	vector<string> allPossibleChords;
+
+	const int stringLength = NOTES_PER_OCTAVE - 1;
+	int numStrings = (int) pow(2, stringLength);
+
+	for (int i = 0; i < numStrings; i++)
+	{
+		string binaryString = bitset<stringLength>(i).to_string();
+		
+		int numOnes = 0;
+		for (int j = 0; j < binaryString.size(); j++)
+		{
+			if (binaryString[j] == '1') numOnes++;
+		}
+
+		if (numOnes == n-1)
+		{
+			string chord = "1" + binaryString;
+			allPossibleChords.push_back(chord);
+		}
+	}
+
+	return allPossibleChords;
+}
+
+// Only C-root chords
+vector<string> generateAllPossibleChords()
+{
+	vector<string> allPossibleChords;
+
+	for (int n = MIN_CHORD_SIZE; n <= MAX_CHORD_SIZE; n++)
+	{
+		vector<string> all_n_note_chords = generateAllChordsOfSize(n);
+		for (int i = 0; i < all_n_note_chords.size(); i++)
+		{
+			allPossibleChords.push_back(all_n_note_chords[i]);
+		}
+	}
+
+	return allPossibleChords;
+}
+
+deque<string> getMatchingScales(string chord)
+{
+	deque<string> matchingScales;
+
+	map<string,string>::iterator it;
+	for (it = reverseScaleMap.begin(); it != reverseScaleMap.end(); it++)
+	{
+		bool matches = true;
+
+		string scale = it->first;
+		for (int i = 0; i < scale.size(); i++)
+		{
+			if (chord[i] == '1' && scale[i] == '0')
+			{
+				matches = false;
+				break;
+			}
+		}
+
+		if (matches)
+		{
+			matchingScales.push_back(scale);
+		}
+	}
+
+	return matchingScales;
+}
+
 void generateChordScaleMapping(string filename)
 {
-	// do stuff to populate chordScaleMap
+	vector<string> allPossibleChords = generateAllPossibleChords();
+	map<string,deque<string>> cMap;
+
+	for (int i = 0; i < allPossibleChords.size(); i++)
+	{
+		string chord = allPossibleChords[i];
+		deque<string> matchingScales = getMatchingScales(chord);
+		cMap.insert(pair<string,deque<string>>(chord, matchingScales));
+	}
+
+	// Make a copy of each mapping for every key
+	map<string,deque<string>>::iterator it;
+	for (it = cMap.begin(); it != cMap.end(); it++)
+	{
+		for (int i = 0; i < 12; i++)
+		{
+			string chord = it->first;
+			deque<string> scales = it->second;
+			
+			string rotatedChord = shiftStringRight(chord, i);
+			deque<string> rotatedScales;
+			for (int j = 0; j < scales.size(); j++)
+			{
+				rotatedScales.push_back(shiftStringRight(scales[j], i));
+			}
+
+			chordScaleMap.insert(pair<string, deque<string>>(rotatedChord, rotatedScales));
+		}
+	}
 
 	writeChordScaleMapping(filename);
 }
@@ -769,15 +884,6 @@ string combineChords(string chord1, string chord2)
 		combinedChord = normalizeBrightness(combinedChord);
 	
 	return combinedChord;
-}
-
-string shiftStringRight(string str, int offset)
-{
-	string rotatedStr = copyString(str);
-	
-	rotate(rotatedStr.rbegin(), rotatedStr.rbegin()+offset, rotatedStr.rend());
-	//cout << "Original string: '" << str << "' Rotated string: '" << rotatedStr << "' with offset of " << offset << endl;
-	return rotatedStr;
 }
 
 int getNoteIndex(string note)

@@ -1635,13 +1635,14 @@ string getScale(string chordScale)
 			key[i] = '1';
 	}
 
-	if (chordScaleMap.find(key) == chordScaleMap.end())
+	deque<string> scales = chordScaleMap[key];
+
+	if (chordScaleMap.find(key) == chordScaleMap.end() || scales.size() == 0)
 	{
-		if (debugMode) cerr << "WARNING - getScale('" << chordScale << "'): no scale found. Returning empty." << endl;
-		return EMPTY_NOTE_STRING;
+		if (debugMode) cerr << "WARNING - getScale('" << chordScale << "'): no scale found. Returning provided chord." << endl;
+		return chordScale;
 	}
 
-	deque<string> scales = chordScaleMap[key];
 	//string scale = scales.front();
 
 	// pick random scale

@@ -449,7 +449,7 @@ vector<string> generateAllPossibleChords()
 	return allPossibleChords;
 }
 
-deque<string> getMatchingScales(string chord)
+deque<string> findMatchingScales(string chord)
 {
 	deque<string> matchingScales;
 
@@ -485,7 +485,7 @@ void generateChordScaleMapping(string filename)
 	for (int i = 0; i < allPossibleChords.size(); i++)
 	{
 		string chord = allPossibleChords[i];
-		deque<string> matchingScales = getMatchingScales(chord);
+		deque<string> matchingScales = findMatchingScales(chord);
 		cMap.insert(pair<string,deque<string>>(chord, matchingScales));
 	}
 
@@ -505,7 +505,21 @@ void generateChordScaleMapping(string filename)
 				rotatedScales.push_back(shiftStringRight(scales[j], i));
 			}
 
-			chordScaleMap.insert(pair<string, deque<string>>(rotatedChord, rotatedScales));
+			// If chord is already mapped, delete it if we just generated a better mapping
+			map<string,deque<string>>::iterator itz = chordScaleMap.find(rotatedChord);
+			if (itz != chordScaleMap.end())
+			{
+				deque<string> existingScales = itz->second;
+				if (rotatedScales.size() > existingScales.size())
+				{
+					chordScaleMap.erase(itz);
+				}
+			}
+
+			if (rotatedScales.size() > 0)
+			{
+				chordScaleMap.insert(pair<string, deque<string>>(rotatedChord, rotatedScales));
+			}
 		}
 	}
 
